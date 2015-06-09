@@ -24,10 +24,10 @@ def GetSpectroCCDPixel(row, column, nrowsold, ncolumnsold, rowoffset, columnoffs
   # Based on which quadrant we're in, decide what new pixel the old pixed maps into.
   NewRow = 0
   NewColumn = 0
-  if(Quadrant == 1):
+  if(Quadrant == 2):#Used to be 1
     NewRow = row
     NewColumn = (2 * (column - (ncolumnsold / 2))) + 1 + ncolumnsold
-  if(Quadrant == 2):
+  if(Quadrant == 1):#Used to be 2
     NewRow = row
     NewColumn = (2 * column) + 1
   if(Quadrant == 3):
