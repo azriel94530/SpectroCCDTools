@@ -68,7 +68,7 @@ if(VerboseProcessing):
 # Set the row and column offset since the controler seems to wrap rows and columns (mostly
 # columns) around the images we read out.
 RowOffset = 0
-ColumnOffset = 40
+ColumnOffset = 39
 
 # Step over all the pixels in the old fits image and put and assign their values to the
 # appropriate location in the new one.
@@ -78,12 +78,21 @@ for column in range(nPixelsXold):
     iPixel += 1
     PythonTools.Progress(iPixel, nPixelsold)
     thisPixelValue = thisImage[0].data[row][column]
-    if(Debugging): print "Reading in value:", thisPixelValue, "from row", row, "and column", column
-    NewRow, NewColumn = PythonTools.GetSpectroCCDPixel(row,         column, 
-                                                       nPixelsYold, nPixelsXold, 
-                                                       RowOffset,   ColumnOffset, 
-                                                       nPixelsYnew, nPixelsXnew)
-    if(Debugging): print "\t...and writing it to row", NewRow, "and column", NewColumn
+    if(Debugging): 
+      print "Reading in value:", thisPixelValue, "from row", row, "and column", column
+    # First we fix the offset and wrap-around.
+    NewRow, NewColumn = PythonTools.FixSpectroCCDOffset(row, column, nPixelsYold, nPixelsXold, RowOffset, ColumnOffset)
+    if(Debugging): 
+      print "\t...and writing it to row", NewRow, "and column", NewColumn, "after fixing the wrap-around."
+    # Next we fix the relative reflection of the bottom half of the image (we may not have to do this forever...).
+    NewRow, NewColumn = PythonTools.FlipSpectroCCDBottom(NewRow, NewColumn, nPixelsYold, nPixelsXold)
+    if(Debugging): 
+      print "\t...and writing it to row", NewRow, "and column", NewColumn, "after flipping the bottom of the image."
+    # Finally, shuffle the columns together to interdigitate.
+    NewRow, NewColumn = PythonTools.InterdigitateSpectroCCDPixels(NewRow,      NewColumn, 
+                                                                  nPixelsYold, nPixelsXold, 
+                                                                  nPixelsYnew, nPixelsXnew)
+    if(Debugging): print "\t...and writing it to row", NewRow, "and column", NewColumn, "now that we're done."
     thatArray[NewRow][NewColumn] = thisPixelValue
 if(Debugging): 
   print thisImage[0].data
