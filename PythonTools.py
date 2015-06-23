@@ -51,7 +51,7 @@ def FlipSpectroCCDBottom(row, column, nrows, ncolumns):
     print "\tError in bottom flip: column", column, "maps to", NewColumn, "which is less than", 0
   return NewRow, NewColumn
 
-# Interdigitate the 
+# Interdigitate the quadrants of the image that comes out of the CCD controler to reconstruct the actual image.
 def InterdigitateSpectroCCDPixels(row, column, nrowsold, ncolumnsold, nrowsnew, ncolumnsnew):
   # Decide which quadrant of the old image we're in.
   Quadrant = GetSpectroCCDQuadrant(row, column, nrowsold, ncolumnsold)
@@ -69,6 +69,26 @@ def InterdigitateSpectroCCDPixels(row, column, nrowsold, ncolumnsold, nrowsnew, 
   if((NewColumn >= ncolumnsnew) or (NewColumn < 0)):
     print "\tError in interdigitation: column", column, "maps to", NewColumn, " which is out of range."
   return NewRow, NewColumn
+
+# Fix the column offset of the reconstructed image by pushing the odd columns down and the even
+# columns up by some numnber of pixels.
+def FixSpectroCCDPixelOffset(pixelshift, row, column, npixelsincolumn):
+  # First, decide if we're in an odd or even column:
+  if((column % 2) == 0):
+    # Shift the pixel row down by pixelshift since we are in an even column.  
+    NewRow = row - pixelshift
+  elif((column % 2) == 1):
+    # Shift up for the odd columns...
+    NewRow = row + pixelshift
+  else:
+    print "This column number seens to be neither odd nor even.  Whaaaaaaaaaaa?"
+    exit()
+  # Now, fix any roll-over issues we might have.
+  if(NewRow < 0):
+    NewRow += npixelsincolumn
+  if(NewRow >= npixelsincolumn):
+    NewRow -= npixelsincolumn
+  return NewRow
 
 # A progress report to let me know that this thing is still running...
 def Progress(thispixel, totalpixels):

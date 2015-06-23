@@ -88,10 +88,13 @@ for column in range(nPixelsXold):
     NewRow, NewColumn = PythonTools.FlipSpectroCCDBottom(NewRow, NewColumn, nPixelsYold, nPixelsXold)
     if(Debugging): 
       print "\t...and writing it to row", NewRow, "and column", NewColumn, "after flipping the bottom of the image."
-    # Finally, shuffle the columns together to interdigitate.
+    # Shuffle the columns together to interdigitate.
     NewRow, NewColumn = PythonTools.InterdigitateSpectroCCDPixels(NewRow,      NewColumn, 
                                                                   nPixelsYold, nPixelsXold, 
                                                                   nPixelsYnew, nPixelsXnew)
+    # Fix the last remaining pixel offsets between the odd and even pixels.
+    PixelShift = 1 #This is the number of pixels that we will shift the odd columns up and the even columns down.
+    NewRow = PythonTools.FixSpectroCCDPixelOffset(PixelShift, NewRow, NewColumn, nPixelsYnew)
     if(Debugging): print "\t...and writing it to row", NewRow, "and column", NewColumn, "now that we're done."
     thatArray[NewRow][NewColumn] = thisPixelValue
 if(Debugging): 
