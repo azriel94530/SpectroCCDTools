@@ -97,11 +97,11 @@ def Progress(thispixel, totalpixels):
     print "\t\tProcessed", thispixel, "out of", totalpixels, "pixels (" + str(int(100. * float(thispixel) / float(totalpixels))) + "%)."
   return
 
-def GetFitModel(fitmodelname, templatehisto, lomean, losigm, mimean, misigm, himean, hisigm):
+def GetOneGausFitModel(fitmodelname, templatehisto, mean, sigm):
   MeanHalfWindow = 50.
   LoFrac =  0.5
   HiFrac =  1.5
-  FitModelString  = "[0] + (([1] * exp(-1. * (((x - [2]) / (1.414 * [3]))^2.)))) + (([4] * exp(-1. * (((x - [5]) / (1.414 * [6]))^2.)))) + (([7] * exp(-1. * (((x - [8]) / (1.414 * [9]))^2.))))"
+  FitModelString  = "[0] + (([1] * exp(-1. * (((x - [2]) / (1.414 * [3]))^2.))))"
   
   FitModel = ROOT.TF1(fitmodelname, FitModelString, 
                       templatehisto.GetXaxis().GetXmin(), 
@@ -115,7 +115,48 @@ def GetFitModel(fitmodelname, templatehisto, lomean, losigm, mimean, misigm, him
   FitModel.SetParLimits(0, 0., 1.e10)
   # Low-mean peak normalization
   FitModel.SetParName(  1, "Low Norm.")
-  FitModel.SetParameter(1, 1.e4)
+  FitModel.SetParameter(1, 2.5e3)
+  FitModel.SetParLimits(1, 0., 1.e10)
+  # Low-mean peak mean
+  FitModel.SetParName(  2, "Low Mean")
+  FitModel.SetParameter(2, mean)
+  FitModel.SetParLimits(2, mean - MeanHalfWindow, mean + MeanHalfWindow)
+  # Low-mean peak sigma
+  FitModel.SetParName(  3, "Low Sigma")
+  FitModel.SetParameter(3, sigm)
+  FitModel.SetParLimits(3, LoFrac * sigm, HiFrac * sigm)
+  return FitModel
+
+def GetOneGausFitComponents(fitmodel):
+  # Grab the peak without the offset...
+  FMPeak = ROOT.TF1("FMPeak", "([1] * exp(-1. * (((x - [2]) / (1.414 * [3]))^2.)))", fitmodel.GetXmin(), fitmodel.GetXmax())
+  FMPeak.SetTitle("Peak")
+  FMPeak.SetLineColor(ROOT.kRed)
+  FMPeak.SetLineStyle(fitmodel.GetLineStyle())
+  FMPeak.FixParameter(1, fitmodel.GetParameter(1))
+  FMPeak.FixParameter(2, fitmodel.GetParameter(2))
+  FMPeak.FixParameter(3, fitmodel.GetParameter(3))
+  return [FMPeak]
+
+def GetTwoGausFitModel(fitmodelname, templatehisto, lomean, losigm, himean, hisigm):
+  MeanHalfWindow = 50.
+  LoFrac =  0.5
+  HiFrac =  1.5
+  FitModelString  = "[0] + (([1] * exp(-1. * (((x - [2]) / (1.414 * [3]))^2.)))) + (([4] * exp(-1. * (((x - [5]) / (1.414 * [6]))^2.))))"
+  
+  FitModel = ROOT.TF1(fitmodelname, FitModelString, 
+                      templatehisto.GetXaxis().GetXmin(), 
+                      templatehisto.GetXaxis().GetXmax())
+  FitModel.SetLineColor(ROOT.kBlack)
+  FitModel.SetLineStyle(2)
+  FitModel.SetLineWidth(4)
+# Constant offset
+  FitModel.SetParName(  0, "Offset")
+  FitModel.SetParameter(0, 1.)
+  FitModel.SetParLimits(0, 0., 1.e10)
+  # Low-mean peak normalization
+  FitModel.SetParName(  1, "Low Norm.")
+  FitModel.SetParameter(1, 2.5e3)
   FitModel.SetParLimits(1, 0., 1.e10)
   # Low-mean peak mean
   FitModel.SetParName(  2, "Low Mean")
@@ -125,35 +166,23 @@ def GetFitModel(fitmodelname, templatehisto, lomean, losigm, mimean, misigm, him
   FitModel.SetParName(  3, "Low Sigma")
   FitModel.SetParameter(3, losigm)
   FitModel.SetParLimits(3, LoFrac * losigm, HiFrac * losigm)
-  # mid-mean peak normalization
-  FitModel.SetParName(  4, "Mid Norm.")
-  FitModel.SetParameter(4, 5.e3)
-  FitModel.SetParLimits(4, 0., 1.e10)
-  # Mid-mean peak mean
-  FitModel.SetParName(  5, "Mid Mean")
-  FitModel.SetParameter(5, mimean)
-  FitModel.SetParLimits(5, mimean - MeanHalfWindow, mimean + MeanHalfWindow)
-  # Mid-mean peak sigma
-  FitModel.SetParName(  6, "Mid Sigma")
-  FitModel.SetParameter(6, misigm)
-  FitModel.SetParLimits(6, LoFrac * misigm, HiFrac * misigm)
   # High-mean peak normalization
-  FitModel.SetParName(  7, "High Norm.")
-  FitModel.SetParameter(7, 1.e3)
-  FitModel.SetParLimits(7, 0., 1.e10)
+  FitModel.SetParName(  4, "High Norm.")
+  FitModel.SetParameter(4, 25.e3)
+  FitModel.SetParLimits(4, 0., 1.e10)
   # High-mean peak mean
-  FitModel.SetParName(  8, "High Mean")
-  FitModel.SetParameter(8, himean)
-  FitModel.SetParLimits(8, himean - MeanHalfWindow, himean + MeanHalfWindow)
+  FitModel.SetParName(  5, "High Mean")
+  FitModel.SetParameter(5, himean)
+  FitModel.SetParLimits(5, himean - MeanHalfWindow, himean + MeanHalfWindow)
   # High-mean peak sigma
-  FitModel.SetParName(  9, "High Sigma")
-  FitModel.SetParameter(9, hisigm)
-  FitModel.SetParLimits(9, LoFrac * hisigm, HiFrac * hisigm)
+  FitModel.SetParName(  6, "High Sigma")
+  FitModel.SetParameter(6, hisigm)
+  FitModel.SetParLimits(6, LoFrac * hisigm, HiFrac * hisigm)
   return FitModel
 
 # Construct and return two TF1 objects that correspond to the two scaled Poisson distributions we
 # are using to describe the SPE spectrum.
-def GetFitComponents(fitmodel):
+def GetTwoGausFitComponents(fitmodel):
   # First, the low-mean peak:
   FMLowPeak = ROOT.TF1("FMLowPeak", "([1] * exp(-1. * (((x - [2]) / (1.414 * [3]))^2.)))", fitmodel.GetXmin(), fitmodel.GetXmax())
   FMLowPeak.SetTitle("Low-Mean Peak")
@@ -163,19 +192,36 @@ def GetFitComponents(fitmodel):
   FMLowPeak.FixParameter(2, fitmodel.GetParameter(2))
   FMLowPeak.FixParameter(3, fitmodel.GetParameter(3))
   # And the mid-mean peak:
-  FMMidPeak = ROOT.TF1("FMMidPeak", "([4] * exp(-1. * (((x - [5]) / (1.414 * [6]))^2.)))", fitmodel.GetXmin(), fitmodel.GetXmax())
-  FMMidPeak.SetTitle("Mid-Mean Peak")
-  FMMidPeak.SetLineColor(ROOT.kGreen - 1)
-  FMMidPeak.SetLineStyle(fitmodel.GetLineStyle())
-  FMMidPeak.FixParameter(4, fitmodel.GetParameter(4))
-  FMMidPeak.FixParameter(5, fitmodel.GetParameter(5))
-  FMMidPeak.FixParameter(6, fitmodel.GetParameter(6))
-  # And the high-mean peak:
-  FMHighPeak = ROOT.TF1("FMHighPeak", "([7] * exp(-1. * (((x - [8]) / (1.414 * [9]))^2.)))", fitmodel.GetXmin(), fitmodel.GetXmax())
+  FMHighPeak = ROOT.TF1("FMHighPeak", "([4] * exp(-1. * (((x - [5]) / (1.414 * [6]))^2.)))", fitmodel.GetXmin(), fitmodel.GetXmax())
   FMHighPeak.SetTitle("High-Mean Peak")
   FMHighPeak.SetLineColor(ROOT.kBlue)
   FMHighPeak.SetLineStyle(fitmodel.GetLineStyle())
-  FMHighPeak.FixParameter(7, fitmodel.GetParameter(7))
-  FMHighPeak.FixParameter(8, fitmodel.GetParameter(8))
-  FMHighPeak.FixParameter(9, fitmodel.GetParameter(9))
-  return [FMLowPeak, FMMidPeak, FMHighPeak]
+  FMHighPeak.FixParameter(4, fitmodel.GetParameter(4))
+  FMHighPeak.FixParameter(5, fitmodel.GetParameter(5))
+  FMHighPeak.FixParameter(6, fitmodel.GetParameter(6))
+  return [FMLowPeak, FMHighPeak]
+
+# Create and return ROOT TGraphErrors object from arrays containing the some quantity as a function of another.
+def CreateTGraph(xarray, yarray, xerrarray, yerrarray, name, title, color, xaxtitle, yaxtitle):
+  # Create and setup the TGraph object
+  AxisTitleSize = 0.05
+  AxisTitleOffset = 0.7
+  AxisLabelSize = 0.03
+  thisGraph = ROOT.TGraphErrors(len(xarray), xarray, yarray, xerrarray, yerrarray)
+  thisGraph.SetName(name)
+  thisGraph.SetTitle(title)
+  thisGraph.SetMarkerStyle(20)
+  thisGraph.SetMarkerSize(1.2)
+  thisGraph.SetMarkerColor(color)
+  thisGraph.SetLineStyle(1)
+  thisGraph.SetLineWidth(1)
+  thisGraph.SetLineColor(color)
+  thisGraph.GetXaxis().SetTitle(xaxtitle)
+  thisGraph.GetXaxis().SetTitleSize(AxisTitleSize)
+  thisGraph.GetXaxis().SetTitleOffset(AxisTitleOffset)
+  thisGraph.GetXaxis().SetLabelSize(AxisLabelSize)
+  thisGraph.GetYaxis().SetTitle(yaxtitle)
+  thisGraph.GetYaxis().SetTitleSize(AxisTitleSize)
+  thisGraph.GetYaxis().SetTitleOffset(1.0 * AxisTitleOffset)
+  thisGraph.GetYaxis().SetLabelSize(AxisLabelSize)
+  return thisGraph
