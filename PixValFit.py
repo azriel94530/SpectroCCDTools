@@ -52,6 +52,7 @@ aCanvas.cd()
 aPad.SetLeftMargin(0.08)
 aPad.SetRightMargin(0.01)
 aPad.SetBottomMargin(0.08)
+aPad.SetLogy(0)
 aPad.Draw()
 aPad.cd()
 PixValHisto.Draw()
@@ -61,7 +62,7 @@ aCanvas.Update()
 if(nPeaks == 1):
   FitModel = PythonTools.GetOneGausFitModel("OneGausFit", PixValHisto, 0.,  150.)
 elif(nPeaks == 2):
-  FitModel = PythonTools.GetTwoGausFitModel("TwoGausFit", PixValHisto, -100.,  150., 100., 155.)
+  FitModel = PythonTools.GetTwoGausFitModel("TwoGausFit", PixValHisto, 0.,  100., 250., 250.)
 else:
   print "\tUmm...  I don't quite understand what fit model we're using here..."
   exit()

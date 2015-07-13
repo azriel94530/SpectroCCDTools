@@ -23,7 +23,7 @@ Debugging = False
 VerboseProcessing = True
 
 if(len(sys.argv) != 4):
-  print "Usage: [python] Fits2TH2F.py path/to/fits/image StartingPixelColumn NumberOfColumnsToPlot"
+  print "Usage: [python] PlotAFewPixValFits.py path/to/fits/image StartingPixelColumn NumberOfColumnsToPlot"
   exit()
 
 # Pull in the path to the FITS file we're going to look at

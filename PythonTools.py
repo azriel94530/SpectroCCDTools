@@ -156,7 +156,7 @@ def GetTwoGausFitModel(fitmodelname, templatehisto, lomean, losigm, himean, hisi
   FitModel.SetParLimits(0, 0., 1.e10)
   # Low-mean peak normalization
   FitModel.SetParName(  1, "Low Norm.")
-  FitModel.SetParameter(1, 2.5e3)
+  FitModel.SetParameter(1, 1.e4)
   FitModel.SetParLimits(1, 0., 1.e10)
   # Low-mean peak mean
   FitModel.SetParName(  2, "Low Mean")
@@ -168,7 +168,7 @@ def GetTwoGausFitModel(fitmodelname, templatehisto, lomean, losigm, himean, hisi
   FitModel.SetParLimits(3, LoFrac * losigm, HiFrac * losigm)
   # High-mean peak normalization
   FitModel.SetParName(  4, "High Norm.")
-  FitModel.SetParameter(4, 25.e3)
+  FitModel.SetParameter(4, 1.e3)
   FitModel.SetParLimits(4, 0., 1.e10)
   # High-mean peak mean
   FitModel.SetParName(  5, "High Mean")
