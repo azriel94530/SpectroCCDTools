@@ -1,9 +1,9 @@
-#!/Users/vmgehman/anaconda/bin/python
+#!/usr/bin/python
 
 ####################################################################################################
-# Open up the histogram of pixel values created by Fits2Root.py and do a sensible fit to that      #
-# business...  There will probably be a more exciting analysis soon, but this is a fun place to    #
-# start.                                                                                           #
+# Open up the histogram of pixel values created by MakePixelValHisto.py and do a sensible fit to   #
+# that business...  There will probably be a more exciting analysis soon, but this is a fun place  #
+# to start.                                                                                        #
 ####################################################################################################
 
 # Header, import statements etc.

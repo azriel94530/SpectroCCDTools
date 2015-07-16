@@ -225,3 +225,58 @@ def CreateTGraph(xarray, yarray, xerrarray, yerrarray, name, title, color, xaxti
   thisGraph.GetYaxis().SetTitleOffset(1.0 * AxisTitleOffset)
   thisGraph.GetYaxis().SetLabelSize(AxisLabelSize)
   return thisGraph
+
+# Create a TH1D object for pixel value histograms of various sorts.
+def MakePixValHisto(histoname, histotitle, nbins, xlo, xhi, color):
+  AxisTitleSize = 0.05
+  AxisTitleOffset = 0.7
+  AxisLabelSize = 0.03
+  PixValHisto = ROOT.TH1D(histoname, histotitle, nbins, xlo, xhi)
+  PixValHisto.SetLineColor(color)
+  PixValHisto.GetXaxis().SetTitle("Background Corrected ADC Value")
+  PixValHisto.GetXaxis().SetTitleSize(AxisTitleSize)
+  PixValHisto.GetXaxis().SetTitleOffset(AxisTitleOffset)
+  PixValHisto.GetXaxis().SetLabelSize(AxisLabelSize)
+  BinWidth = (xhi - xlo) / float(nbins)
+  TitleString = "Counts per " + "{:0.1f}".format(BinWidth) + " ADC Unit Bin"
+  PixValHisto.GetYaxis().SetTitle(TitleString)
+  PixValHisto.GetYaxis().SetTitleSize(AxisTitleSize)
+  PixValHisto.GetYaxis().SetTitleOffset(1.0 * AxisTitleOffset)
+  PixValHisto.GetYaxis().SetLabelSize(AxisLabelSize)
+  return PixValHisto
+
+# Create an annotation to display the parameters from the fit we do to the pixel value data.
+def MakeFitAnnotation(fitmodel):
+  thisChi2 = fitmodel.GetChisquare()
+  thisNDF  = fitmodel.GetNDF()
+  thisPVal = fitmodel.GetProb()
+  LoMean = fitmodel.GetParameter(2)
+  LoMeEr = fitmodel.GetParError(2)
+  LoSigm = fitmodel.GetParameter(3)
+  LoSiEr = fitmodel.GetParError(3)
+  HiMean = fitmodel.GetParameter(5)
+  HiMeEr = fitmodel.GetParError(5)
+  HiSigm = fitmodel.GetParameter(6)
+  HiSiEr = fitmodel.GetParError(6)
+  AnnotationLeft  = 0.672
+  AnnotationRight = 0.972
+  AnnotationTop   = 0.915
+  AnnotationBottom = 0.515
+  thisAnnotation = ROOT.TPaveText(AnnotationLeft,AnnotationBottom,AnnotationRight,AnnotationTop,"blNDC")
+  thisAnnotation.SetName(fitmodel.GetName() + "_AnnotationText")
+  thisAnnotation.SetBorderSize(1)
+  thisAnnotation.SetFillColor(ROOT.kWhite)
+  ThisLine = "#chi^{2} per DoF = " + "{:6.1f}".format(thisChi2) + " / " + str(thisNDF) + " = " + "{:6.2f}".format(thisChi2 / float(thisNDF))
+  thisAnnotation.AddText(ThisLine)
+  ThisLine = "(Probability = " + "{:2.6f}".format(thisPVal) + ")"
+  thisAnnotation.AddText(ThisLine)
+  ThisLine = "Low Mean = "    + "{:6.2f}".format(LoMean) + " #pm " + "{:1.2f}".format(LoMeEr)
+  thisAnnotation.AddText(ThisLine)
+  ThisLine = "Low Sigma =  "  + "{:6.2f}".format(LoSigm) + " #pm " + "{:1.2f}".format(LoSiEr)
+  thisAnnotation.AddText(ThisLine)
+  ThisLine = "High Mean = "   + "{:6.2f}".format(HiMean) + " #pm " + "{:1.2f}".format(HiMeEr)
+  thisAnnotation.AddText(ThisLine)
+  ThisLine = "High Sigma =  " + "{:6.2f}".format(HiSigm) + " #pm " + "{:1.2f}".format(HiSiEr)
+  thisAnnotation.AddText(ThisLine)
+  return thisAnnotation
+

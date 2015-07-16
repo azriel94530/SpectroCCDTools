@@ -185,7 +185,6 @@ for binX in range(nPixelsX):
     thisPixelValue = thisImage[0].data[binY][binX] - QuadraticFit.Eval(thisYPositionData[binY])
     thatBin = thatHistogram.FindBin(XPositions[binX], thisYPositionData[binY])
     if(Debugging): print "Writing value:", thisPixelValue, "to bin number:", thatBin, "(position:", binX, "x", str(binY) + ")"
-    thatHistogram.SetBinContent(binX, binY, thisPixelValue)
     if(thisPixelValue < MinPixVal): MinPixVal = thisPixelValue
     if(thisPixelValue > MaxPixVal): MaxPixVal = thisPixelValue
     MeanPixVal += (thisPixelValue / float(nPixels))
@@ -202,8 +201,8 @@ if(VerboseProcessing):
 # Set the Z axis range on the histogram so that the contrast doesn't look terrible.
 DisplayMin = MeanPixVal - (4. * RMSPixelVal)
 DisplayMax = MeanPixVal + (6. * RMSPixelVal)
-if(VerboseProcessing): print "\tSetting Z range: " + "{:5.1}".format(DisplayMin) + " to " + "{:5.1}".format(DisplayMax)
-thatHistogram.GetZaxis().SetRangeUser(DisplayMin, DisplayMax)
+#if(VerboseProcessing): print "\tSetting Z range: " + "{:5.1}".format(DisplayMin) + " to " + "{:5.1}".format(DisplayMax)
+#thatHistogram.GetZaxis().SetRangeUser(DisplayMin, DisplayMax)
 
 # Now that we know what the range of this histogram should be, build a background-corrected pixel
 # value histogram for the whole chip.
@@ -215,6 +214,7 @@ for binX in range(nPixelsX):
   QuadraticFit.SetParameter(2, QuadraCoefs[binX])
   for binY in range(nPixelsY):
     thisPixelValue = thisImage[0].data[binY][binX] - QuadraticFit.Eval(thisYPositionData[binY])
+    thatHistogram.SetBinContent(binX, binY, thisPixelValue)
     iPixel += 1
     if((nPixels >= 100) and (iPixel % int(nPixels / 100) == 0)):
       ROOT.StatusBar(iPixel, nPixels, int(nPixels / 100))
