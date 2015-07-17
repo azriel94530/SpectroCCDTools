@@ -167,6 +167,7 @@ ThresholdGraph.GetYaxis().SetRangeUser(0., 1.1 * max(ThresholdData))
 ThresholdGraph.Draw("ap")
 aCanvas.Update()
 aCanvas.SaveAs(InputFilePath.replace(".root", ".ThreshVals.pdf"))
+#exit()
 
 # Now, let's make a series of pixel value histograms and fill them appropriately.
 PixValLo = round(MinPixVal, -3)
