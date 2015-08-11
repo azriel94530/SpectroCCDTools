@@ -32,7 +32,7 @@ VerboseProcessing = True
 PlotImageHisto = False
 
 if(len(sys.argv) != 2):
-  print "Usage: python PixValFit.py path/to/root/file/with/pixel/value/histogram N"
+  print "Usage: python PixValFit.py path/to/root/file/with/pixel/value/histogram"
   exit()
 
 # Pull in the path to the root file we're going to look at
@@ -78,7 +78,7 @@ YPosition = []
 YPositiEr = []
 # We would also like to track the number of pixels that above threshold (some number of RMS), and
 # therefore are candidate x ray interaction sites in each row of pixels.
-ThresholdInRMS = 5.
+ThresholdInRMS = 10.
 ThresholdData = []
 ThresholdDepartureData = []
 
@@ -172,7 +172,7 @@ aCanvas.SaveAs(InputFilePath.replace(".root", ".ThreshVals.pdf"))
 # Now, let's make a series of pixel value histograms and fill them appropriately.
 PixValLo = round(MinPixVal, -3)
 PixValHi = round(MaxPixVal, -3) + 1000.
-nPixValBins = 1000
+nPixValBins = 250
 print "\tHistogramming ALL pixel values..."
 PixValHisto_All = PythonTools.MakePixValHisto("PixValHisto_All", "Histogram of All Pixel Values", nPixValBins, PixValLo, PixValHi, ROOT.kBlack)
 iYBin = 0
@@ -184,17 +184,19 @@ for yBin in yBinsToAnalyze:
   iYBin += 1
 print
 aPad.SetRightMargin(0.025)
-aPad.SetLogy(1)
+aPad.SetLogy(0)
 PixValHisto_All.Draw()
-PixValHisto_All.GetYaxis().SetRangeUser(0.1, 5.e4)
-# Fit two Gaussians to the histogram of all pixel values and report the results.
-FitModel_All = PythonTools.GetTwoGausFitModel("FitModel_All", PixValHisto_All, 0.,  80., 240., 250.)
-PixValHisto_All.Fit(FitModel_All, "LLEM", "", -1000., 2000.)
+PixValHisto_All.GetXaxis().SetRangeUser(-800., 1200)
+PixValHisto_All.GetYaxis().SetRangeUser(0., 1.6e5)
+# Fit a Gaussian to the pedestal region of the histogram of all pixel values to get the with of
+# the noise peak.
+FitModel_All = PythonTools.GetOneGausFitModel("FitModel_All", PixValHisto_All, 0.,  80.)
+PixValHisto_All.Fit(FitModel_All, "LLEM", "", -400., 200.)
 FitComponents_All = PythonTools.GetTwoGausFitComponents(FitModel_All)
 for fitcomp in FitComponents_All:
   fitcomp.Draw("same")
 aCanvas.Update()
-FitAnnotation_All = PythonTools.MakeFitAnnotation(FitModel_All)
+FitAnnotation_All = PythonTools.MakeOneGausFitAnnotation(FitModel_All)
 FitAnnotation_All.Draw()
 aCanvas.Update()
 aCanvas.SaveAs(InputFilePath.replace(".root", "." + PixValHisto_All.GetName() + ".pdf"))
@@ -212,20 +214,23 @@ for pixval in PixelValuesAboveThr:
   #print "Pixel:", xBinsAboveThreshold[ipv], yBinsAboveThreshold[ipv], "with value", pixval, "or", PixelValuesAboveThr[ipv], "or better yet", ImageHisto.GetBinContent(xBinsAboveThreshold[ipv], yBinsAboveThreshold[ipv])
   ipv += 1
 print
+aPad.SetLogy(1)
 PixValHisto_AbvThrsh.Draw()
-PixValHisto_AbvThrsh.GetYaxis().SetRangeUser(0.1, 5.e4)
-FitModel_AbvThrsh = PythonTools.GetTwoGausFitModel("FitModel_AbvThrsh", PixValHisto_AbvThrsh, -50., 100., 330., 250.)
-PixValHisto_AbvThrsh.Fit(FitModel_AbvThrsh, "LLEM", "", 100., 2500.)
-FitComponents_AbvThrsh = PythonTools.GetTwoGausFitComponents(FitModel_AbvThrsh)
+PixValHisto_AbvThrsh.GetXaxis().SetRangeUser(-100., 1500.)
+PixValHisto_AbvThrsh.GetYaxis().SetRangeUser(0.5, 5.e4)
+FitModel_AbvThrsh = PythonTools.GetRWFitModel("FitModel_AbvThrsh", PixValHisto_AbvThrsh, 450., 250., 100.)
+PixValHisto_AbvThrsh.Fit(FitModel_AbvThrsh, "LLEM", "", 400., 3000.)
+#FitComponents_AbvThrsh = PythonTools.GetTwoGausFitComponents(FitModel_AbvThrsh)
+FitComponents_AbvThrsh = PythonTools.GetRWFitModelComponents(FitModel_AbvThrsh)
 for fitcomp in FitComponents_AbvThrsh:
   fitcomp.Draw("same")
 aCanvas.Update()
-FitAnnotation_AbvThrsh = PythonTools.MakeFitAnnotation(FitModel_AbvThrsh)
+FitAnnotation_AbvThrsh = PythonTools.MakeFitAnnotationRW(FitModel_AbvThrsh)
 FitAnnotation_AbvThrsh.Draw()
 aCanvas.Update()
 aCanvas.SaveAs(InputFilePath.replace(".root", "." + PixValHisto_AbvThrsh.GetName() + ".pdf"))
 PixValHisto_AbvThrsh.SetTitle("Thresh. Cut")
-#exit()
+
 print "\tFinding aixels above threshold that are local maxima..."
 xBinsLocMax = []
 yBinsLocMax = []
@@ -238,10 +243,13 @@ for i in range(len(PixelValuesAboveThr)):
   thisPixVal_1dn = ImageHisto.GetBinContent(xBinsAboveThreshold[i],     yBinsAboveThreshold[i] - 1)
   thisPixVal_1lf = ImageHisto.GetBinContent(xBinsAboveThreshold[i] - 1, yBinsAboveThreshold[i])
   thisPixVal_1rt = ImageHisto.GetBinContent(xBinsAboveThreshold[i] + 1, yBinsAboveThreshold[i])
-  if(thisPixVal < thisPixVal_1up): LocalMax = False
-  if(thisPixVal < thisPixVal_1dn): LocalMax = False
-  if(thisPixVal < thisPixVal_1lf): LocalMax = False
-  if(thisPixVal < thisPixVal_1rt): LocalMax = False
+  thisPixVal_2lf = ImageHisto.GetBinContent(xBinsAboveThreshold[i] - 2, yBinsAboveThreshold[i])
+  thisPixVal_2rt = ImageHisto.GetBinContent(xBinsAboveThreshold[i] + 2, yBinsAboveThreshold[i])
+  thisPixVal_3lf = ImageHisto.GetBinContent(xBinsAboveThreshold[i] - 3, yBinsAboveThreshold[i])
+  thisPixVal_3rt = ImageHisto.GetBinContent(xBinsAboveThreshold[i] + 3, yBinsAboveThreshold[i])
+  NeighboringPixVals = [thisPixVal_1up, thisPixVal_1dn, thisPixVal_1lf, thisPixVal_1rt, thisPixVal_2lf, thisPixVal_2rt, thisPixVal_3lf, thisPixVal_3rt]
+  for npv in NeighboringPixVals:
+    if(thisPixVal < npv): LocalMax = False
   if(LocalMax):
     xBinsLocMax.append(xBinsAboveThreshold[i])
     yBinsLocMax.append(yBinsAboveThreshold[i])
@@ -259,16 +267,20 @@ for i in range(len(xBinsLocMax)):
   Sum1Val = ImageHisto.GetBinContent(xBinsLocMax[i], yBinsLocMax[i])
   Sum3Val = 0.
   for j in range(-1, 2):
-    Sum3Val += ImageHisto.GetBinContent(xBinsLocMax[i] + j, yBinsLocMax[i])
+    thisPixVal = ImageHisto.GetBinContent(xBinsLocMax[i] + j, yBinsLocMax[i])
+    Sum3Val += thisPixVal
   Sum5Val = 0.
   for j in range(-2, 3):
-    Sum5Val += ImageHisto.GetBinContent(xBinsLocMax[i] + j, yBinsLocMax[i])
+    thisPixVal = ImageHisto.GetBinContent(xBinsLocMax[i] + j, yBinsLocMax[i])
+    Sum5Val += thisPixVal
   Sum7Val = 0.
   for j in range(-3, 4):
-    Sum7Val += ImageHisto.GetBinContent(xBinsLocMax[i] + j, yBinsLocMax[i])
+    thisPixVal = ImageHisto.GetBinContent(xBinsLocMax[i] + j, yBinsLocMax[i])
+    Sum7Val += thisPixVal
   Sum9Val = 0.
   for j in range(-4, 5):
-    Sum9Val += ImageHisto.GetBinContent(xBinsLocMax[i] + j, yBinsLocMax[i])
+    thisPixVal = ImageHisto.GetBinContent(xBinsLocMax[i] + j, yBinsLocMax[i])
+    Sum9Val += thisPixVal
   # Now populate the Sum(N) histograms...
   PixValHisto_Sum1.Fill(Sum1Val)
   PixValHisto_Sum3.Fill(Sum3Val)
@@ -278,24 +290,24 @@ for i in range(len(xBinsLocMax)):
 print 
 FitModels_SumN = []
 SumHists = [PixValHisto_Sum1, PixValHisto_Sum3, PixValHisto_Sum5, PixValHisto_Sum7, PixValHisto_Sum9]
-ShrtName = ["Sum(1)",         "Sum(3)",         "Sum(5)",         "Sum(7)",         "Sum(9)"]
-LoMeans  = [   0.,             110.,              130.,             130.,             130.]
-HiMeans  = [ 430.,             650.,             1000.,            1400.,            1500.]
-LoSigmas = [  85.,             120.,              150.,             220.,             250.]
-HiSigmas = [ 250.,             400.,              450.,             500.,             400.]
-FitLos   = [ 100.,           -1000.,            -1000.,           -1000.,           -1000.]
-FitHis   = [2500.,            3500.,             3500.,            4000.,            4000.]
+ShrtName = ["Sum(1)",      "Sum(3)",          "Sum(5)",         "Sum(7)",         "Sum(9)"]
+Means    = [ 650.,             900.,             1500.,            1900.,            2000.]
+Sigmas   = [ 150.,             300.,              300.,             500.,             500.]
+Skewss   = [  50.,              50.,              100.,             100.,             100.]
+FitLos   = [ 450.,             700.,             1000.,            1200.,            1200.]
+FitHis   = [2000.,            2500.,             3500.,            3500.,            3500.]
 for i in range(len(SumHists)):
-  SumHists[i].GetYaxis().SetRangeUser(0.1, 5.e4)
+  SumHists[i].GetXaxis().SetRangeUser(-100., 5000.)
+  SumHists[i].GetYaxis().SetRangeUser(0.5, 5.e4)
   SumHists[i].Draw()
   aCanvas.Update()
-  FitModels_SumN.append(PythonTools.GetTwoGausFitModel("FitModel_" + SumHists[i].GetName(), SumHists[i], LoMeans[i],  LoSigmas[i], HiMeans[i], HiSigmas[i]))
+  FitModels_SumN.append(PythonTools.GetRWFitModel("FitModel_" + SumHists[i].GetName(), SumHists[i], Means[i], Sigmas[i], Skewss[i]))
   SumHists[i].Fit(FitModels_SumN[i], "LLEM", "", FitLos[i], FitHis[i])
-  FitComponents_SumN = PythonTools.GetTwoGausFitComponents(FitModels_SumN[i])
+  FitComponents_SumN = PythonTools.GetRWFitModelComponents(FitModels_SumN[i])
   for fitcomp in FitComponents_SumN:
     fitcomp.Draw("same")
   aCanvas.Update()
-  FitAnnotation = PythonTools.MakeFitAnnotation(FitModels_SumN[i])
+  FitAnnotation = PythonTools.MakeFitAnnotationRW(FitModels_SumN[i])
   FitAnnotation.Draw()
   aCanvas.SaveAs(InputFilePath.replace(".root", "." + SumHists[i].GetName() + ".pdf"))
   SumHists[i].SetTitle(ShrtName[i])
@@ -321,6 +333,11 @@ aLegend.Draw()
 aCanvas.Update()
 aCanvas.SaveAs(InputFilePath.replace(".root", ".AllPixValHistos.pdf"))
 
+# Save the Sum(N) spectra to a root file so that we can do stuff with them later.
+OutputFile = ROOT.TFile(InputFilePath.replace(".root", ".xrayAnalysis.root"), "recreate")
+for plot in OtherPixValHists:
+  plot.Write()
+OutputFile.Close()
 # Get the end time and report how long this calculation took
 StopTime = time.time()
 print "It took", StopTime - StartTime, "seconds for this code to run."

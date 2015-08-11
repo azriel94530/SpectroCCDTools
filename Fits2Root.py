@@ -42,15 +42,14 @@ if(Debugging): print thisImage.info()
 nPixelsX = thisImage[0].header['NAXIS1']
 nPixelsY = thisImage[0].header['NAXIS2']
 nPixels = nPixelsX * nPixelsY
-
 # Read the pixel dimensions out of the fits header.
 lPixelX = thisImage[0].header['PXLDIM1']
 lPixelY = thisImage[0].header['PXLDIM2']
-
-# Now calculate the CCD dimensions...
+# Now calculate the CCD dimensions and overscan region.
 lCCDX = nPixelsX * lPixelX
 lCCDY = nPixelsY * lPixelY
-if(VerboseProcessing): print "\t" + InputFilePath, "is", nPixelsX, "x", nPixelsY, "pixels (""{:0.0f}".format(lCCDX)  + " mm x " + "{:0.0f}".format(lCCDY) + " mm)."
+if(VerboseProcessing): 
+  print "\t" + InputFilePath, "is", nPixelsX, "x", nPixelsY, "pixels, for a total of", "{:0.0f}".format(nPixels) + "."
 
 # Start up all the ROOT stuff now that we're done reading in fits images...
 import ROOT
@@ -70,14 +69,15 @@ thatHistogram.GetXaxis().SetTitleOffset(1.0)
 thatHistogram.GetYaxis().SetTitle("y Position [mm]")
 thatHistogram.GetYaxis().SetTitleOffset(0.7)
 
-# Let's make a list to hold TGraph objects that will hold the column by column data used to
+# Let's also make a list to hold TGraph objects that will hold the column by column data used to
 # subtract off the background.
 ColumnGraphs = []
 
 # Step over all the pixels in the fits image and put their content in the corresponding bin in the
-# TH2F.
+# TH2F or in to the overscan stack as appropriate.
 if(VerboseProcessing): print "\n\tReading in the individual columns for this image."
 iPixel = 0
+OverScanPixel = False
 for binX in range(nPixelsX):
   thisColumnData    = numpy.zeros(nPixelsY)
   thisColumnUnc     = numpy.zeros(nPixelsY)
@@ -117,7 +117,7 @@ QuadraticFit = ROOT.TF1("QuadraticFit", "[0] + ([1] * x) + ([2] * (x^2))", yLo, 
 EdgeBuffer = 50 #Number of pixels to cheat in from the edges since they are some times kind of wonky.
 FitLo = ColumnGraphs[0].GetX()[EdgeBuffer]
 FitHi = ColumnGraphs[0].GetX()[ColumnGraphs[0].GetN() - EdgeBuffer]
-FracDiffThresh = 0.05 # Fractional deviation allowed to make it into the quadratic fit.
+FracDiffThresh = 0.01 # Fractional deviation allowed to make it into the quadratic fit.
 FracDiffCount = numpy.zeros(nPixelsX)
 iColumn = -1
 for graph in ColumnGraphs:

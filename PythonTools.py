@@ -6,6 +6,23 @@
 
 import ROOT
 
+# Asign a new row and column to an input pixel that removes the overscan region that shows up in
+# as vertical and horizontal bands in the middle of the image.  
+def RemoveSpectroCCDOverscan(row, column, npixelsyold, npixelsxold, nrealpixelsy, nrealpixelsx):
+  OverscanRowStart = nrealpixelsy
+  OverscanRowStop  = npixelsyold - (nrealpixelsy)
+  OverscanColStart = nrealpixelsx / 4
+  OverscanColStop  = npixelsxold - (nrealpixelsx / 4)
+  #print "Overscan rows go from", OverscanRowStart, "to", OverscanRowStop
+  #print "Overscan cols go from", OverscanColStart, "to", OverscanColStop
+  NewRow    = -10 # Initialize these two to the overscan region, and then move them out if it
+  NewColumn = -10 # makes sense to do so.
+  if(row < OverscanRowStart): NewRow = row
+  if(row >= OverscanRowStop): NewRow = row - (npixelsyold - (2 * nrealpixelsy))
+  if(column < OverscanColStart): NewColumn = column
+  if(column >= OverscanColStop): NewColumn = column - (npixelsxold - (nrealpixelsx / 2))
+  return NewRow, NewColumn
+
 # Correct for the row and column offsets...
 def FixSpectroCCDOffset(row, column, nrows, ncolumns, rowoffset, columnoffset):
   NewRow = row - rowoffset
@@ -70,19 +87,16 @@ def InterdigitateSpectroCCDPixels(row, column, nrowsold, ncolumnsold, nrowsnew, 
     print "\tError in interdigitation: column", column, "maps to", NewColumn, " which is out of range."
   return NewRow, NewColumn
 
-# Fix the column offset of the reconstructed image by pushing the odd columns down and the even
-# columns up by some numnber of pixels.
+# Fix the column offset of the reconstructed image by pushing the odd columns down by some numnber
+# of pixels.
 def FixSpectroCCDPixelOffset(pixelshift, row, column, npixelsincolumn):
-  # First, decide if we're in an odd or even column:
-  if((column % 2) == 0):
-    # Shift the pixel row down by pixelshift since we are in an even column.  
-    NewRow = row - pixelshift
-  elif((column % 2) == 1):
+  # Check to see if we are in an odd column, and increment the row number by one (shifting it down
+  # in the immage) if we are.
+  if((column % 2) == 1):
     # Shift up for the odd columns...
     NewRow = row + pixelshift
   else:
-    print "This column number seens to be neither odd nor even.  Whaaaaaaaaaaa?"
-    exit()
+    NewRow = row
   # Now, fix any roll-over issues we might have.
   if(NewRow < 0):
     NewRow += npixelsincolumn
@@ -201,6 +215,96 @@ def GetTwoGausFitComponents(fitmodel):
   FMHighPeak.FixParameter(6, fitmodel.GetParameter(6))
   return [FMLowPeak, FMHighPeak]
 
+# Construct a peak model taken from RadWare, a tool often used in HPGe detector analysis...
+def GetRWFitModel(fitmodelname, templatehisto, mean, sigm, skew):
+  # Set some basic parameter limits...
+  MeanHalfWindow = 100.
+  LoFrac =  0.5
+  HiFrac =  1.5
+  # Build up the peak model
+  GausString = "([0] * exp(-0.5 * ((x - [1]) / [2])^2))"
+  SkGsString = "([3] * exp((x - [1]) / [4]) * TMath::Erfc(((x - [1]) / (sqrt(2.) * [2])) + ([2] / (sqrt(2.) * [4]))))"
+  SkSfString = "([5] * TMath::Erfc((x - [1]) / (sqrt(2.) * [2])))"
+  BkGdString = "[6] + ([7] * x) + ([8] * (x^2))"
+  PeakModelString = GausString + " + " + SkGsString + " + " + SkSfString + " + " + BkGdString
+  PeakModel = ROOT.TF1("PeakModel", PeakModelString, 
+                       templatehisto.GetXaxis().GetXmin(), templatehisto.GetXaxis().GetXmax())
+  PeakModel.SetLineColor(ROOT.kBlack)
+  PeakModel.SetLineStyle(2)
+  PeakModel.SetLineWidth(4)
+  # Calculate the initial guesses for the model parameters from the histogram
+  templatehisto.GetXaxis().SetRangeUser(mean - (5. * sigm), mean + (5. * sigm))
+  SpecMax = templatehisto.GetMaximum()
+  templatehisto.GetXaxis().UnZoom()
+  # Set up the peak model...
+  # Gaussian bit:
+  PeakModel.SetParName(  0, "Gaus. Nor.")
+  PeakModel.SetParLimits(0, 0., 2. * SpecMax)
+  PeakModel.SetParameter(0, SpecMax)
+  PeakModel.SetParName(  1, "Peak Mean")
+  PeakModel.SetParLimits(1, mean - MeanHalfWindow, mean + MeanHalfWindow)
+  PeakModel.SetParameter(1, mean)
+  PeakModel.SetParName(  2, "Gaus. sig.")
+  PeakModel.SetParLimits(2, LoFrac * sigm, HiFrac * sigm)
+  PeakModel.SetParameter(2, sigm)
+  # Skewed Gaussian bit:
+  PeakModel.SetParName(  3, "SG Nor.")
+  PeakModel.SetParLimits(3, 0., 2. * SpecMax)
+  PeakModel.SetParameter(3, 0.1 * SpecMax)
+  PeakModel.SetParName(  4, "Skewedness")
+  PeakModel.SetParLimits(4, LoFrac * skew, HiFrac * skew)
+  PeakModel.SetParameter(4, skew)
+  # Sigmoid function:
+  PeakModel.SetParName(  5, "SF Nor.")
+  PeakModel.SetParLimits(5, 0., 0.5 * SpecMax)
+  PeakModel.SetParameter(5, 0.)
+  # Polynomial background:
+  PeakModel.SetParName(  6, "BG Cnst.")
+  PeakModel.SetParLimits(6, 0., 2. * SpecMax)
+  PeakModel.SetParameter(6, templatehisto.GetBinContent(templatehisto.FindBin(mean - 10.)))
+  PeakModel.SetParName(  7, "BG Lin.")
+  PeakModel.FixParameter(7, 0.)
+  PeakModel.SetParName(  8, "BG Quad.")
+  PeakModel.FixParameter(8, 0.)
+  return PeakModel
+
+# And get the components of the RadWare peak model...
+def GetRWFitModelComponents(fitmodel):
+  # Peak model components...
+  GausString = "([0] * exp(-0.5 * ((x - [1]) / [2])^2))"
+  SkGsString = "([3] * exp((x - [1]) / [4]) * TMath::Erfc(((x - [1]) / (sqrt(2.) * [2])) + ([2] / (sqrt(2.) * [4]))))"
+  SkSfString = "([5] * TMath::Erfc((x - [1]) / (sqrt(2.) * [2])))"
+  BkGdString = "[6] + ([7] * x) + ([8] * (x^2))"
+  # Isolate the Gaussian component of the fit model
+  GausModel = ROOT.TF1("GausModel", GausString, fitmodel.GetXmin(), fitmodel.GetXmax())
+  GausModel.SetTitle("Gaussian Peak")
+  GausModel.SetLineColor(ROOT.kBlue)
+  GausModel.SetLineWidth(fitmodel.GetLineWidth())
+  GausModel.SetLineStyle(fitmodel.GetLineStyle())
+  GausModel.FixParameter(0, fitmodel.GetParameter(0))
+  GausModel.FixParameter(1, fitmodel.GetParameter(1))
+  GausModel.FixParameter(2, fitmodel.GetParameter(2))
+  # Isolate the Skewed Gaussian component
+  SkGsModel = ROOT.TF1("SkGsModel", SkGsString, fitmodel.GetXmin(), fitmodel.GetXmax())
+  SkGsModel.SetTitle("Sk. Gaus. Peak")
+  SkGsModel.SetLineColor(ROOT.kCyan)
+  SkGsModel.SetLineWidth(fitmodel.GetLineWidth())
+  SkGsModel.SetLineStyle(fitmodel.GetLineStyle())
+  SkGsModel.FixParameter(3, fitmodel.GetParameter(3))
+  SkGsModel.FixParameter(1, fitmodel.GetParameter(1))
+  SkGsModel.FixParameter(4, fitmodel.GetParameter(4))
+  SkGsModel.FixParameter(2, fitmodel.GetParameter(2))
+  # Isolate the sigmoid component
+  SgmdModel = ROOT.TF1("SkGsModel", SkSfString, fitmodel.GetXmin(), fitmodel.GetXmax())
+  SgmdModel.SetTitle("Sigmoid Fcn.")
+  SgmdModel.SetLineColor(ROOT.kGreen)
+  SgmdModel.SetLineWidth(fitmodel.GetLineWidth())
+  SgmdModel.SetLineStyle(fitmodel.GetLineStyle())
+  SgmdModel.FixParameter(5, fitmodel.GetParameter(5))
+  SgmdModel.FixParameter(1, fitmodel.GetParameter(1))
+  SgmdModel.FixParameter(2, fitmodel.GetParameter(2))
+  return [GausModel, SkGsModel, SgmdModel]
+
 # Create and return ROOT TGraphErrors object from arrays containing the some quantity as a function of another.
 def CreateTGraph(xarray, yarray, xerrarray, yerrarray, name, title, color, xaxtitle, yaxtitle):
   # Create and setup the TGraph object
@@ -245,8 +349,36 @@ def MakePixValHisto(histoname, histotitle, nbins, xlo, xhi, color):
   PixValHisto.GetYaxis().SetLabelSize(AxisLabelSize)
   return PixValHisto
 
-# Create an annotation to display the parameters from the fit we do to the pixel value data.
-def MakeFitAnnotation(fitmodel):
+# Create an annotation to display the parameters from the single-Gaussian fit we do to the pixel value data.
+def MakeOneGausFitAnnotation(fitmodel):
+  thisChi2 = fitmodel.GetChisquare()
+  thisNDF  = fitmodel.GetNDF()
+  thisPVal = fitmodel.GetProb()
+  Mean = fitmodel.GetParameter(2)
+  MeEr = fitmodel.GetParError(2)
+  Sigm = fitmodel.GetParameter(3)
+  SiEr = fitmodel.GetParError(3)
+  AnnotationLeft  = 0.672
+  AnnotationRight = 0.972
+  AnnotationTop   = 0.915
+  AnnotationBottom = 0.715
+  thisAnnotation = ROOT.TPaveText(AnnotationLeft,AnnotationBottom,AnnotationRight,AnnotationTop,"blNDC")
+  thisAnnotation.SetName(fitmodel.GetName() + "_AnnotationText")
+  thisAnnotation.SetBorderSize(1)
+  thisAnnotation.SetTextFont(42)
+  thisAnnotation.SetFillColor(ROOT.kWhite)
+  ThisLine = "#chi^{2} per DoF = " + "{:6.1f}".format(thisChi2) + " / " + str(thisNDF) + " = " + "{:6.2f}".format(thisChi2 / float(thisNDF))
+  thisAnnotation.AddText(ThisLine)
+  ThisLine = "(Probability = " + "{:2.6f}".format(thisPVal) + ")"
+  thisAnnotation.AddText(ThisLine)
+  ThisLine = "Mean = "    + "{:6.2f}".format(Mean) + " #pm " + "{:1.2f}".format(MeEr)
+  thisAnnotation.AddText(ThisLine)
+  ThisLine = "Sigma =  "  + "{:6.2f}".format(Sigm) + " #pm " + "{:1.2f}".format(SiEr)
+  thisAnnotation.AddText(ThisLine)
+  return thisAnnotation
+
+# Create an annotation to display the parameters from the double-Gaussian fit we do to the pixel value data.
+def MakeTwoGausFitAnnotation(fitmodel):
   thisChi2 = fitmodel.GetChisquare()
   thisNDF  = fitmodel.GetNDF()
   thisPVal = fitmodel.GetProb()
@@ -265,6 +397,7 @@ def MakeFitAnnotation(fitmodel):
   thisAnnotation = ROOT.TPaveText(AnnotationLeft,AnnotationBottom,AnnotationRight,AnnotationTop,"blNDC")
   thisAnnotation.SetName(fitmodel.GetName() + "_AnnotationText")
   thisAnnotation.SetBorderSize(1)
+  thisAnnotation.SetTextFont(42)
   thisAnnotation.SetFillColor(ROOT.kWhite)
   ThisLine = "#chi^{2} per DoF = " + "{:6.1f}".format(thisChi2) + " / " + str(thisNDF) + " = " + "{:6.2f}".format(thisChi2 / float(thisNDF))
   thisAnnotation.AddText(ThisLine)
@@ -278,5 +411,71 @@ def MakeFitAnnotation(fitmodel):
   thisAnnotation.AddText(ThisLine)
   ThisLine = "High Sigma =  " + "{:6.2f}".format(HiSigm) + " #pm " + "{:1.2f}".format(HiSiEr)
   thisAnnotation.AddText(ThisLine)
+  return thisAnnotation
+
+# Create an annotation to display the parameters from the Radware fit
+def MakeFitAnnotationRW(fitmodel):
+  thisChi2 = fitmodel.GetChisquare()
+  thisNDF  = fitmodel.GetNDF()
+  thisPVal = fitmodel.GetProb()
+  Gnor = fitmodel.GetParameter(0)
+  GnEr = fitmodel.GetParError(0)
+  Mean = fitmodel.GetParameter(1)
+  MeEr = fitmodel.GetParError(1)
+  Sigm = fitmodel.GetParameter(2)
+  SiEr = fitmodel.GetParError(2)
+  SGno = fitmodel.GetParameter(3)
+  SGEr = fitmodel.GetParError(3)
+  Skew = fitmodel.GetParameter(4)
+  SkEr = fitmodel.GetParError(4)
+  SmdN = fitmodel.GetParameter(5)
+  SNEr = fitmodel.GetParError(5)
+  AnnotationLeft  = 0.672
+  AnnotationRight = 0.972
+  AnnotationTop   = 0.915
+  AnnotationBottom = 0.515
+  thisAnnotation = ROOT.TPaveText(AnnotationLeft,AnnotationBottom,AnnotationRight,AnnotationTop,"blNDC")
+  thisAnnotation.SetTextFont(42)
+  thisAnnotation.SetName(fitmodel.GetName() + "_AnnotationText")
+  thisAnnotation.SetBorderSize(1)
+  thisAnnotation.SetFillColor(ROOT.kWhite)
+  ThisLine = "#chi^{2} per DoF = " + "{:6.1f}".format(thisChi2) + " / " + str(thisNDF) + " = " + "{:6.2f}".format(thisChi2 / float(thisNDF))
+  thisAnnotation.AddText(ThisLine)
+  ThisLine = "(Probability = " + "{:2.6f}".format(thisPVal) + ")"
+  thisAnnotation.AddText(ThisLine)
+  ThisLine = "Mean = "    + "{:6.2f}".format(Mean) + " #pm " + "{:1.2f}".format(MeEr)
+  thisAnnotation.AddText(ThisLine)
+  ThisLine = "Sigma =  "  + "{:6.2f}".format(Sigm) + " #pm " + "{:1.2f}".format(SiEr)
+  thisAnnotation.AddText(ThisLine)
+  ThisLine = "Skewedness = "   + "{:6.2f}".format(Skew) + " #pm " + "{:1.2f}".format(SkEr)
+  thisAnnotation.AddText(ThisLine)
+  ThisLine = "Gaus. Norm. = "   + "{:6.2f}".format(Gnor) + " #pm " + "{:1.2f}".format(GnEr)
+  thisAnnotation.AddText(ThisLine)
+  ThisLine = "Sk. Gs. N. = "   + "{:6.2f}".format(SGno) + " #pm " + "{:1.2f}".format(SGEr)
+  thisAnnotation.AddText(ThisLine)
+  ThisLine = "Sigmoid Norm. = "   + "{:6.2f}".format(SmdN) + " #pm " + "{:1.2f}".format(SNEr)
+  thisAnnotation.AddText(ThisLine)
+  # Calculate and report the FWHM of the Gauussian and skewed Gaussian components of the fit model.
+  #Components = GetRWFitModelComponents(fitmodel)
+  #thisModel = ROOT.TF1("thisModel", Components[0].GetName() + " + " + Components[1].GetName(), fitmodel.GetXmin(), fitmodel.GetXmax())
+  #MaxVal = thisModel.GetMaximum()
+  #MaxX = thisModel.GetMaximumX()
+  #xStep = (fitmodel.GetXmax() - fitmodel.GetXmin()) / 1000.
+  # Get the upper side of the full width:
+  #thisX = MaxX
+  #CurrentVal = thisModel.Eval(thisX)
+  #while(CurrentVal > (0.5 * MaxVal)):
+  #  thisX += xStep
+  #  CurrentVal = thisModel.Eval(thisX)
+  #HiSide = thisX
+  # Now get the low side of the full width:
+  #thisX = MaxX
+  #CurrentVal = thisModel.Eval(thisX)
+  #while(CurrentVal > (0.5 * MaxVal)):
+  #  thisX -= xStep
+  #  CurrentVal = thisModel.Eval(thisX)
+  #LoSide = thisX  
+  #ThisLine = "FWHM =  " + "{:6.2f}".format(HiSide - LoSide)
+  #thisAnnotation.AddText(ThisLine)
   return thisAnnotation
 
