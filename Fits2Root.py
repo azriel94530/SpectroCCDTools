@@ -137,7 +137,7 @@ for graph in ColumnGraphs:
   for i in range(graph.GetN()):
     if(numpy.abs(graph.GetY()[i] - LinearGuess.Eval(graph.GetX()[i])) > numpy.abs(FracDiffThresh * graph.GetY()[i])):
       graph.GetX()[i] = -10.
-      graph.GetY()[i] =  0.
+      graph.GetY()[i] = -10.
       FracDiffCount[iColumn] += 1
   if(Debugging): print "\t\tThrowing out", FracDiffCount[iColumn], "pixels."
   QuadraticFit.SetParameter(0, LinearGuess.GetParameter(0))

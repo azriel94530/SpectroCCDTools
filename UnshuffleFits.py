@@ -27,8 +27,9 @@ StartTime = time.time()
 Debugging = False
 VerboseProcessing = True
 
-if(len(sys.argv) != 2):
-  print "Usage: python UnshuffleFits.py path/to/fits/image"
+if(len(sys.argv) != 3):
+  print "Usage: python UnshuffleFits.py path/to/fits/image N"
+  print "       where \'N\' is the number of pixels to shift the odd columns down."
   exit()
 
 # Pull in the path to the FITS file we're going to look at
@@ -43,6 +44,11 @@ if os.path.exists(OutputFilePath):
 if(VerboseProcessing):
   print "\tReading in: '" + InputFilePath + "'."
   print "\tWriting output to: '" + OutputFilePath + "'."
+
+#This is the number of pixels that we will shift the odd down (increment the row number).
+PixelShift = int(sys.argv[2]) 
+if(VerboseProcessing):
+  print "\tShifting *odd* pixels in the reconstructed image down (incrementing row number) by", PixelShift, "Pixel(s)."
 
 # Use astropy to open up the fits file we're after.
 thisImage = astropy.io.fits.open(InputFilePath, ignore_missing_end=True)
@@ -93,10 +99,14 @@ for column in range(nPixelsXold):
     thisPixelValue = thisImage[0].data[row][column]
     if(Debugging): 
       print "Reading in value:", thisPixelValue, "from row", row, "and column", column
-    # First, we deal with the overscan.
-    NewRow, NewColumn = PythonTools.RemoveSpectroCCDOverscan(row, column, nPixelsYold, nPixelsXold, nRealPixelsY, nRealPixelsX)
+    # First we fix the offset and wrap-around.
+    NewRow, NewColumn = PythonTools.FixSpectroCCDOffset(row, column, nRealPixelsY * 2, nRealPixelsX / 2, RowOffset, ColumnOffset)
+    if(Debugging): 
+      print "\t...and writing it to row", NewRow, "and column", NewColumn, "after fixing the wrap-around."
+    # Next, we deal with the overscan.
+    NewRow, NewColumn = PythonTools.RemoveSpectroCCDOverscan(NewRow, NewColumn, nPixelsYold, nPixelsXold, nRealPixelsY, nRealPixelsX)
     if((NewRow == -10) or (NewColumn == -10)):
-      #PythonTools.RemoveSpectroCCDOverscan returns a -10 as the to either NewRow and/or NewColumn
+      #PythonTools.RemoveSpectroCCDOverscan returns a -10 as to either NewRow and/or NewColumn
       # if it finds the pixel location to be in one of the overscan regions, and just subtracts out
       # the overscan pixel number if it is not.
       OversanPixelValues.append(thisPixelValue)
@@ -104,10 +114,6 @@ for column in range(nPixelsXold):
       continue
     else: 
       if(Debugging): print "Row", row, "and Column", column, "maps to", NewRow, "and", NewColumn, "after removing the overscan."
-    # First we fix the offset and wrap-around.
-    NewRow, NewColumn = PythonTools.FixSpectroCCDOffset(NewRow, NewColumn, nRealPixelsY * 2, nRealPixelsX / 2, RowOffset, ColumnOffset)
-    if(Debugging): 
-      print "\t...and writing it to row", NewRow, "and column", NewColumn, "after fixing the wrap-around."
     # Next we fix the relative reflection of the bottom half of the image (we may not have to do this forever...).
     NewRow, NewColumn = PythonTools.FlipSpectroCCDBottom(NewRow, NewColumn, nRealPixelsY * 2, nRealPixelsX / 2)
     if(Debugging): 
@@ -118,7 +124,6 @@ for column in range(nPixelsXold):
                                                                   nPixelsYnew,      nPixelsXnew)
     if(Debugging): print "\t...and writing it to row", NewRow, "and column", NewColumn, "after interdigitating."
     # Fix the last remaining pixel offsets between the odd and even pixels.
-    PixelShift = 3 #This is the number of pixels that we will shift the odd down (increment the row number).
     NewRow = PythonTools.FixSpectroCCDPixelOffset(PixelShift, NewRow, NewColumn, nPixelsYnew)
     if(Debugging): print "\t...and writing it to row", NewRow, "and column", NewColumn, "now that we're done."
     thatArray[NewRow][NewColumn] = thisPixelValue

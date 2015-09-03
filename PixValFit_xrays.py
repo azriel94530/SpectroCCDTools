@@ -315,8 +315,12 @@ for i in range(len(SumHists)):
 # Just for fun, let's make a group shot of all the pixel value histograms...
 ROOT.gStyle.SetOptTitle(0)
 aPad.SetTopMargin(0.01)
+aPad.SetLogy(1)
+PixValHisto_All.GetXaxis().SetRangeUser(-800., 3500.)
+PixValHisto_All.GetYaxis().SetRangeUser(0.2, 2000.)
 PixValHisto_All.Fit("gaus", "Q0")
 PixValHisto_All.Draw()
+aCanvas.Update()
 OtherPixValHists = [PixValHisto_Sum1, PixValHisto_Sum3, PixValHisto_Sum5, PixValHisto_Sum7, PixValHisto_Sum9]
 for pixvalhist in OtherPixValHists:
   pixvalhist.Fit("gaus", "Q0")

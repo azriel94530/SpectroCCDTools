@@ -5,6 +5,16 @@
 ###################################################################################################
 
 import ROOT
+import array
+import numpy
+
+# Correct for the row and column offsets...
+def FixSpectroCCDOffset(row, column, nrows, ncolumns, rowoffset, columnoffset):
+  NewRow = row - rowoffset
+  if(NewRow < 0): NewRow += nrows
+  NewColumn = column - columnoffset
+  if(NewColumn < 0): NewColumn += ncolumns
+  return NewRow, NewColumn
 
 # Asign a new row and column to an input pixel that removes the overscan region that shows up in
 # as vertical and horizontal bands in the middle of the image.  
@@ -21,14 +31,6 @@ def RemoveSpectroCCDOverscan(row, column, npixelsyold, npixelsxold, nrealpixelsy
   if(row >= OverscanRowStop): NewRow = row - (npixelsyold - (2 * nrealpixelsy))
   if(column < OverscanColStart): NewColumn = column
   if(column >= OverscanColStop): NewColumn = column - (npixelsxold - (nrealpixelsx / 2))
-  return NewRow, NewColumn
-
-# Correct for the row and column offsets...
-def FixSpectroCCDOffset(row, column, nrows, ncolumns, rowoffset, columnoffset):
-  NewRow = row - rowoffset
-  if(NewRow < 0): NewRow += nrows
-  NewColumn = column - columnoffset
-  if(NewColumn < 0): NewColumn += ncolumns
   return NewRow, NewColumn
 
 # Return the quadrant of the CCD readout.  It's defined just like the x-y plane:
@@ -112,7 +114,7 @@ def Progress(thispixel, totalpixels):
   return
 
 def GetOneGausFitModel(fitmodelname, templatehisto, mean, sigm):
-  MeanHalfWindow = 50.
+  MeanHalfWindow = 100.
   LoFrac =  0.5
   HiFrac =  1.5
   FitModelString  = "[0] + (([1] * exp(-1. * (((x - [2]) / (1.414 * [3]))^2.))))"
@@ -120,23 +122,23 @@ def GetOneGausFitModel(fitmodelname, templatehisto, mean, sigm):
   FitModel = ROOT.TF1(fitmodelname, FitModelString, 
                       templatehisto.GetXaxis().GetXmin(), 
                       templatehisto.GetXaxis().GetXmax())
-  FitModel.SetLineColor(ROOT.kBlack)
+  FitModel.SetLineColor(templatehisto.GetLineColor())
   FitModel.SetLineStyle(2)
-  FitModel.SetLineWidth(4)
+  FitModel.SetLineWidth(templatehisto.GetLineWidth() + 1)
 # Constant offset
   FitModel.SetParName(  0, "Offset")
   FitModel.SetParameter(0, 1.)
   FitModel.SetParLimits(0, 0., 1.e10)
   # Low-mean peak normalization
-  FitModel.SetParName(  1, "Low Norm.")
-  FitModel.SetParameter(1, 2.5e3)
-  FitModel.SetParLimits(1, 0., 1.e10)
+  FitModel.SetParName(  1, "Norm.")
+  FitModel.SetParameter(1, templatehisto.GetMaximum())
+  FitModel.SetParLimits(1, 0., 2. * templatehisto.GetMaximum())
   # Low-mean peak mean
-  FitModel.SetParName(  2, "Low Mean")
+  FitModel.SetParName(  2, "Mean")
   FitModel.SetParameter(2, mean)
   FitModel.SetParLimits(2, mean - MeanHalfWindow, mean + MeanHalfWindow)
   # Low-mean peak sigma
-  FitModel.SetParName(  3, "Low Sigma")
+  FitModel.SetParName(  3, "Sigma")
   FitModel.SetParameter(3, sigm)
   FitModel.SetParLimits(3, LoFrac * sigm, HiFrac * sigm)
   return FitModel
@@ -216,20 +218,19 @@ def GetTwoGausFitComponents(fitmodel):
   return [FMLowPeak, FMHighPeak]
 
 # Construct a peak model taken from RadWare, a tool often used in HPGe detector analysis...
-def GetRWFitModel(fitmodelname, templatehisto, mean, sigm, skew):
+def GetRWFitModel(fitmodelname, templatehisto, mean, sigm):
   # Set some basic parameter limits...
   MeanHalfWindow = 100.
   LoFrac =  0.5
   HiFrac =  1.5
   # Build up the peak model
   GausString = "([0] * exp(-0.5 * ((x - [1]) / [2])^2))"
-  SkGsString = "([3] * exp((x - [1]) / [4]) * TMath::Erfc(((x - [1]) / (sqrt(2.) * [2])) + ([2] / (sqrt(2.) * [4]))))"
-  SkSfString = "([5] * TMath::Erfc((x - [1]) / (sqrt(2.) * [2])))"
-  BkGdString = "[6] + ([7] * x) + ([8] * (x^2))"
-  PeakModelString = GausString + " + " + SkGsString + " + " + SkSfString + " + " + BkGdString
+  SkSfString = "([3] * TMath::Erfc((x - [1]) / (sqrt(2.) * [2])))"
+  BkGdString = "[4] + ([5] * x) + ([6] * (x^2))"
+  PeakModelString = GausString + " + " + SkSfString + " + " + BkGdString
   PeakModel = ROOT.TF1("PeakModel", PeakModelString, 
                        templatehisto.GetXaxis().GetXmin(), templatehisto.GetXaxis().GetXmax())
-  PeakModel.SetLineColor(ROOT.kBlack)
+  PeakModel.SetLineColor(templatehisto.GetLineColor())
   PeakModel.SetLineStyle(2)
   PeakModel.SetLineWidth(4)
   # Calculate the initial guesses for the model parameters from the histogram
@@ -247,63 +248,54 @@ def GetRWFitModel(fitmodelname, templatehisto, mean, sigm, skew):
   PeakModel.SetParName(  2, "Gaus. sig.")
   PeakModel.SetParLimits(2, LoFrac * sigm, HiFrac * sigm)
   PeakModel.SetParameter(2, sigm)
-  # Skewed Gaussian bit:
-  PeakModel.SetParName(  3, "SG Nor.")
-  PeakModel.SetParLimits(3, 0., 2. * SpecMax)
-  PeakModel.SetParameter(3, 0.1 * SpecMax)
-  PeakModel.SetParName(  4, "Skewedness")
-  PeakModel.SetParLimits(4, LoFrac * skew, HiFrac * skew)
-  PeakModel.SetParameter(4, skew)
   # Sigmoid function:
-  PeakModel.SetParName(  5, "SF Nor.")
-  PeakModel.SetParLimits(5, 0., 0.5 * SpecMax)
-  PeakModel.SetParameter(5, 0.)
+  PeakModel.SetParName(  3, "SF Nor.")
+  PeakModel.SetParLimits(3, 0., 0.5 * SpecMax)
+  PeakModel.SetParameter(3, 0.)
   # Polynomial background:
-  PeakModel.SetParName(  6, "BG Cnst.")
-  PeakModel.SetParLimits(6, 0., 2. * SpecMax)
-  PeakModel.SetParameter(6, templatehisto.GetBinContent(templatehisto.FindBin(mean - 10.)))
-  PeakModel.SetParName(  7, "BG Lin.")
-  PeakModel.FixParameter(7, 0.)
-  PeakModel.SetParName(  8, "BG Quad.")
-  PeakModel.FixParameter(8, 0.)
+  PeakModel.SetParName(  4, "BG Cnst.")
+  PeakModel.SetParLimits(4, 0., 2. * SpecMax)
+  PeakModel.SetParameter(4, templatehisto.GetBinContent(templatehisto.FindBin(mean - 10.)))
+  PeakModel.SetParName(  5, "BG Lin.")
+  PeakModel.FixParameter(5, 0.)
+  PeakModel.SetParName(  6, "BG Quad.")
+  PeakModel.FixParameter(6, 0.)
   return PeakModel
 
 # And get the components of the RadWare peak model...
 def GetRWFitModelComponents(fitmodel):
   # Peak model components...
   GausString = "([0] * exp(-0.5 * ((x - [1]) / [2])^2))"
-  SkGsString = "([3] * exp((x - [1]) / [4]) * TMath::Erfc(((x - [1]) / (sqrt(2.) * [2])) + ([2] / (sqrt(2.) * [4]))))"
-  SkSfString = "([5] * TMath::Erfc((x - [1]) / (sqrt(2.) * [2])))"
-  BkGdString = "[6] + ([7] * x) + ([8] * (x^2))"
+  SkSfString = "([3] * TMath::Erfc((x - [1]) / (sqrt(2.) * [2])))"
+  BkGdString = "[4] + ([5] * x) + ([6] * (x^2))"
   # Isolate the Gaussian component of the fit model
   GausModel = ROOT.TF1("GausModel", GausString, fitmodel.GetXmin(), fitmodel.GetXmax())
   GausModel.SetTitle("Gaussian Peak")
-  GausModel.SetLineColor(ROOT.kBlue)
+  GausModel.SetLineColor(fitmodel.GetLineColor() - 1)
   GausModel.SetLineWidth(fitmodel.GetLineWidth())
   GausModel.SetLineStyle(fitmodel.GetLineStyle())
   GausModel.FixParameter(0, fitmodel.GetParameter(0))
   GausModel.FixParameter(1, fitmodel.GetParameter(1))
   GausModel.FixParameter(2, fitmodel.GetParameter(2))
-  # Isolate the Skewed Gaussian component
-  SkGsModel = ROOT.TF1("SkGsModel", SkGsString, fitmodel.GetXmin(), fitmodel.GetXmax())
-  SkGsModel.SetTitle("Sk. Gaus. Peak")
-  SkGsModel.SetLineColor(ROOT.kCyan)
-  SkGsModel.SetLineWidth(fitmodel.GetLineWidth())
-  SkGsModel.SetLineStyle(fitmodel.GetLineStyle())
-  SkGsModel.FixParameter(3, fitmodel.GetParameter(3))
-  SkGsModel.FixParameter(1, fitmodel.GetParameter(1))
-  SkGsModel.FixParameter(4, fitmodel.GetParameter(4))
-  SkGsModel.FixParameter(2, fitmodel.GetParameter(2))
   # Isolate the sigmoid component
   SgmdModel = ROOT.TF1("SkGsModel", SkSfString, fitmodel.GetXmin(), fitmodel.GetXmax())
   SgmdModel.SetTitle("Sigmoid Fcn.")
-  SgmdModel.SetLineColor(ROOT.kGreen)
+  SgmdModel.SetLineColor(fitmodel.GetLineColor() + 1)
   SgmdModel.SetLineWidth(fitmodel.GetLineWidth())
   SgmdModel.SetLineStyle(fitmodel.GetLineStyle())
-  SgmdModel.FixParameter(5, fitmodel.GetParameter(5))
+  SgmdModel.FixParameter(3, fitmodel.GetParameter(3))
   SgmdModel.FixParameter(1, fitmodel.GetParameter(1))
   SgmdModel.FixParameter(2, fitmodel.GetParameter(2))
-  return [GausModel, SkGsModel, SgmdModel]
+  # Isolate the sigmoid component
+  BkGdModel = ROOT.TF1("BkGdModel", BkGdString, fitmodel.GetXmin(), fitmodel.GetXmax())
+  BkGdModel.SetTitle("Pol. Bg.")
+  BkGdModel.SetLineColor(fitmodel.GetLineColor() + 2)
+  BkGdModel.SetLineWidth(fitmodel.GetLineWidth())
+  BkGdModel.SetLineStyle(fitmodel.GetLineStyle())
+  BkGdModel.FixParameter(4, fitmodel.GetParameter(4))
+  BkGdModel.FixParameter(5, fitmodel.GetParameter(5))
+  BkGdModel.FixParameter(6, fitmodel.GetParameter(6))
+  return [GausModel, SgmdModel, BkGdModel]
 
 # Create and return ROOT TGraphErrors object from arrays containing the some quantity as a function of another.
 def CreateTGraph(xarray, yarray, xerrarray, yerrarray, name, title, color, xaxtitle, yaxtitle):
@@ -424,12 +416,8 @@ def MakeFitAnnotationRW(fitmodel):
   MeEr = fitmodel.GetParError(1)
   Sigm = fitmodel.GetParameter(2)
   SiEr = fitmodel.GetParError(2)
-  SGno = fitmodel.GetParameter(3)
-  SGEr = fitmodel.GetParError(3)
-  Skew = fitmodel.GetParameter(4)
-  SkEr = fitmodel.GetParError(4)
-  SmdN = fitmodel.GetParameter(5)
-  SNEr = fitmodel.GetParError(5)
+  SmdN = fitmodel.GetParameter(3)
+  SNEr = fitmodel.GetParError(3)
   AnnotationLeft  = 0.672
   AnnotationRight = 0.972
   AnnotationTop   = 0.915
@@ -447,11 +435,7 @@ def MakeFitAnnotationRW(fitmodel):
   thisAnnotation.AddText(ThisLine)
   ThisLine = "Sigma =  "  + "{:6.2f}".format(Sigm) + " #pm " + "{:1.2f}".format(SiEr)
   thisAnnotation.AddText(ThisLine)
-  ThisLine = "Skewedness = "   + "{:6.2f}".format(Skew) + " #pm " + "{:1.2f}".format(SkEr)
-  thisAnnotation.AddText(ThisLine)
   ThisLine = "Gaus. Norm. = "   + "{:6.2f}".format(Gnor) + " #pm " + "{:1.2f}".format(GnEr)
-  thisAnnotation.AddText(ThisLine)
-  ThisLine = "Sk. Gs. N. = "   + "{:6.2f}".format(SGno) + " #pm " + "{:1.2f}".format(SGEr)
   thisAnnotation.AddText(ThisLine)
   ThisLine = "Sigmoid Norm. = "   + "{:6.2f}".format(SmdN) + " #pm " + "{:1.2f}".format(SNEr)
   thisAnnotation.AddText(ThisLine)
@@ -478,4 +462,78 @@ def MakeFitAnnotationRW(fitmodel):
   #ThisLine = "FWHM =  " + "{:6.2f}".format(HiSide - LoSide)
   #thisAnnotation.AddText(ThisLine)
   return thisAnnotation
+
+# Pull the profile of pixel values between xlo_mm and xhi_mm for y bin number ybin out of
+# imagehisto and return a TGraph.
+def GetXProfile(imagehisto, ybin, xlo_mm, xhi_mm):
+  xbins = range(imagehisto.GetXaxis().FindBin(xlo_mm), imagehisto.GetXaxis().FindBin(xhi_mm) + 1)
+  xvals = []
+  yvals = []
+  for xbin in xbins:
+    xvals.append(imagehisto.GetXaxis().GetBinCenter(xbin))
+    yvals.append(imagehisto.GetBinContent(xbin, ybin))
+  thisGraph = ROOT.TGraph( len(xvals), array.array("f", xvals), array.array("f", yvals) )
+  thisGraph.SetName(imagehisto.GetName() + "_ybin_" + str(ybin))
+  thisGraph.SetTitle(imagehisto.GetTitle() + ", y = " + "{:3.1f}".format(imagehisto.GetYaxis().GetBinCenter(ybin)) + " mm")
+  thisGraph.GetXaxis().SetTitle("X Position [mm]")
+  thisGraph.GetXaxis().SetTitleOffset(1.1)
+  thisGraph.GetYaxis().SetTitle("Pixel Value [ADC Units]")
+  thisGraph.GetYaxis().SetTitleOffset(1.1)
+  # Quickly calculate the weighted mean and RMS of this TGraph object.
+  thisMean = 0.
+  thisMeanSq = 0.
+  thisTotal = 0.
+  for i in range(thisGraph.GetN()):
+    thisY = numpy.abs(thisGraph.GetY()[i])
+    thisMean += (thisGraph.GetX()[i] * thisY)
+    thisMeanSq += ((thisGraph.GetX()[i]**2.) * thisY)
+    thisTotal += thisY
+  thisMean /= thisTotal
+  thisMeanSq /= thisTotal
+  thisRMS = (thisMeanSq - (thisMean**2.))**0.5
+  # And get the half-amplitude for this graph too.
+  thisHalfAmpl = 0.5 * (max(yvals) - min(yvals))
+  return thisGraph, thisMean, thisRMS, thisHalfAmpl
+
+# Pull the profile of pixel values between xlo_mm and xhi_mm for y bin number ybin out of
+# imagehisto and return the x value of its maximum and its and the half max range on either side.
+def GetXProfileXmaxAndHalfRange(imagehisto, ybin, xlo_mm, xhi_mm):
+  xbins = range(imagehisto.GetXaxis().FindBin(xlo_mm), imagehisto.GetXaxis().FindBin(xhi_mm) + 1)
+  xVals = []
+  PixVals = [] 
+  for xbin in xbins:
+    xVals.append(imagehisto.GetXaxis().GetBinCenter(xbin))
+    PixVals.append(imagehisto.GetBinContent(xbin, ybin))
+  # Get the baseline value by averaging the three pixels on either end of the list.
+  PixValBaseLine = 0.
+  for i in range(-3, 3):
+    PixValBaseLine += PixVals[i] / 6.
+  # Find the maximum value, its bin number, its x position, and the half-amplitude value.
+  MaxPixVal = max(PixVals)
+  MaxPixBin = PixVals.index(MaxPixVal)
+  MaxXVal = xVals[MaxPixBin]
+  HalfAmplVal = PixValBaseLine + (0.5 * (MaxPixVal - PixValBaseLine))
+  # Now start from the max value bin and work up until the value falls below the half-amplitude value:
+  thisBin = MaxPixBin
+  nBinsBelowHalfMaxValThresh = 3
+  nBinsBelowHalfMaxVal = 0
+  while((nBinsBelowHalfMaxVal <= nBinsBelowHalfMaxValThresh) and (thisBin < len(PixVals) - 1)):
+    thisBin += 1
+    if(PixVals[thisBin] < HalfAmplVal):
+      nBinsBelowHalfMaxVal += 1
+    #print thisBin, PixVals[thisBin], HalfAmplVal
+  HalfMaxXValHi = xVals[thisBin] - MaxXVal
+  # Now reset and do the same on the low side:
+  thisBin = MaxPixBin
+  nBinsBelowHalfMaxVal = 0
+  while((nBinsBelowHalfMaxVal <= nBinsBelowHalfMaxValThresh) and (thisBin > 0)):
+    thisBin -= 1
+    if(PixVals[thisBin] < HalfAmplVal):
+      nBinsBelowHalfMaxVal += 1
+    #print thisBin, PixVals[thisBin], HalfAmplVal
+  HalfMaxXValLo = MaxXVal - xVals[thisBin]
+  #print "At y =", imagehisto.GetYaxis().GetBinCenter(ybin), "mm, the maxumum is", MaxPixVal, "at x =", MaxXVal, "+", HalfMaxXValHi, "-", HalfMaxXValLo, "mm."
+  #exit()
+  return MaxXVal, HalfMaxXValHi, HalfMaxXValLo, HalfAmplVal
+
 

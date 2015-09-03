@@ -68,6 +68,7 @@ if(NoOutputNameSpecified):
 # Crack open the root file, get the 2D histogram, draw it, and zoom in on the region of interest...
 InputFile = ROOT.TFile(InputFilePath)
 ImageHisto = InputFile.Get("thatHistogram")
+ImageHisto.SetName("ImageHisto")
 aCanvas, aPad = RootPlotLibs.GetReadyToPlot()
 aCanvas.Draw()
 aCanvas.cd()
@@ -89,6 +90,9 @@ ImageHisto.GetZaxis().UnZoom()
 ImageHisto.Draw("colz")
 aCanvas.Update()
 aCanvas.SaveAs(InputFilePath.replace(".root", "." + OutputTag + ".png"))
+#ImageRootFile = ROOT.TFile(InputFilePath.replace(".root", "." + OutputTag + ".root"), "RECREATE")
+#ImageHisto.Write()
+#ImageRootFile.Close()
 #raw_input()
 
 # Pull in the list of bins in both X and Y we're going to look at.
@@ -115,14 +119,21 @@ InputFile.Close()
 
 # Build up a histogram of the pixel values
 TitleString = "Histogram of Pixel Values in Range: " + str(xLo) + " < x < " + str(xHi) + ", " + str(yLo) + " < y < " + str(yHi)
-nBins = 100
-PixelValueHisto = ROOT.TH1D("PixelValueHistoZoom", TitleString, nBins, min(PixelValues), max(PixelValues))
+PixValLo = round(min(PixelValues), -3)
+PixValHi = round(max(PixelValues), -3)
+PixValBW = 10.
+nBins = 0
+thisBinVal = PixValLo
+while(thisBinVal < PixValHi):
+  nBins += 1
+  thisBinVal = PixValLo + (float(nBins) * PixValBW)
+print "\tHistogramming pixel values from", PixValLo, "to", str(PixValHi) + ".\n"
+PixelValueHisto = ROOT.TH1D("PixelValueHistoZoom", TitleString, nBins, PixValLo, thisBinVal)
 PixelValueHisto.GetXaxis().SetTitle("Background Corrected Pixel Values [ADC Units]")
 PixelValueHisto.GetXaxis().SetTitleOffset(1.1)
-BinWidth = (max(PixelValues) - min(PixelValues)) / float(nBins)
-TitleString = "Counts per " + "{:0.1f}".format(BinWidth) + " ADC Unit Bin"
+TitleString = "Counts per " + "{:0.1f}".format(PixValBW) + " ADC Unit Bin"
 PixelValueHisto.GetYaxis().SetTitle(TitleString)
-PixelValueHisto.GetYaxis().SetTitleOffset(1.1)
+PixelValueHisto.GetYaxis().SetTitleOffset(1.2)
 print "\tWriting pixel values to TH1D..."
 iVal = 0
 for val in PixelValues:
