@@ -1,0 +1,74 @@
+ccdbramstart		
+address	data	
+x0	 | bb004001	reset active
+x1	 | 93002001	h3 low
+x2	 | d7002001	h2 high
+x3	 | 55002001	h1 low
+x4	 | 7d002001	h3 high
+x5	 | 39002001	h2 low
+x6	 | bb002001	h1 high wait reset settling
+x7	 | aa001001	turn reset off no delay
+x8	 | aa001801	sample reset
+x9	 | aac03001	summing well high
+x10	 | aa000001	summing well low signal settling
+x11	 | aa000801	sample signal
+x12	 | aa00f001	turn off sampling
+x13	 | 00000008	loop to 0 for num col
+x14	 | cc005002	V2 high TG low
+x15	 | 44005002	V1 low
+x16	 | 66005002	V3 high
+x17	 | 22005002	V2 low
+x18	 | aac05002	V1,TG high
+x19	| 88c05002	V3 low
+		
+		
+x32	 | 88e02802	shutter open
+x33	| 7f000284	loop over open shutter
+x34	 | aa00f001	serial clock initial conditions
+x35	 | 88c0f002	parallel clock initial conditions
+x36	 | bb004001	reset active
+x37	 | 93002001	h3 low
+x38	 | d7002001	h2 high
+x39	 | 55002001	h1 low
+x40	 | 7d002001	h3 high
+x41	 | 39002001	h2 low
+x42	 | bb002001	h1 high wait reset settling
+x43	 | aa001001	turn reset off no delay
+x44	 | aa011801	sample reset
+x45	 | aac03001	summing well high
+x46	 | aa000001	summing well low signal settling
+x47	 | aa020801	sample signal
+x48	 | aa00f001	turn off sampling
+x49	 | 00240008	loop to 36 for num col
+x50	 | cc005002	V2 high TG low
+x51	 | 44005002	V1 low
+x52	 | 66005002	V3 high
+x53	 | 22005002	V2 low
+x54	 | aac05002	V1,TG high
+x55	| 88c05002	V3 low
+x56	 | 00241008	loop to 36 for num rows
+x57	 | 0000000f	return to idle state
+		
+		
+x64	 | aa00f001	serial clock initial conditions
+x65	 | 88c0f002	parallel clock initial conditions
+x66	 | bb004001	reset active
+x67	 | aa00f001	turn reset off no delay
+x68	 | 88002001	h3 low
+x69	 | cc002001	h2 high
+x70	 | 44002001	h1 low
+x71	 | 66002001	h3 high
+x72	 | 22002001	h2 low
+x73	 | aa002001	h1 high
+x74	 | aac03001	summing well high
+x75	 | aa003001	summing well low
+x76	 | 00422008	loop to 66 for num clear col
+x77	 | cc005002	V2 high TG low
+x78	 | 44005002	V1 low
+x79	 | 66005002	V3 high
+x80	 | 22005002	V2 low
+x81	 | aac05002	V1,TG high
+x82	| 88c05002	V3 low
+x83	 | 00421008	loop to 66 for num rows
+x84	 | 0000000f	return to idle state
+ccdbramend		

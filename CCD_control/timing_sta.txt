@@ -1,0 +1,220 @@
+<!--QQstartQQ		
+
+address	data	
+
+Idle
+x0	 | 55004001	reset active
+
+x1	 | 4400f001	turn reset off no delay
+
+x2	 | cc002001	h3 low
+
+x3	 | 88002001	h2 high
+
+x4	 | aa002001	h1 low
+
+x5	 | 22002001	h3 high
+
+x6	 | 66002001	h2 low
+
+x7	 | 44001001	h1 high wait reset settling
+
+x8	 | 44020801	sample signal for gain setting
+
+x9	 | 44c03001	summing well high
+
+x10	 | 44000001	summing well low signal settling
+
+x11	 | 44000801	sample signal
+
+x12	 | 4400f001	turn off sampling
+
+x13	 | 00000008	loop to 0 for num col
+
+x14	 | c6405002	V2 high TG low
+
+x15	 | 44005002	V1 low
+
+x16	 | 6c005002	V3 high
+
+x17	 | 28805002	V2 low
+
+x18	 | aac05002	V1,TG high
+
+x19	 | 82c05002	V3 low
+,clamp off
+x20	 | 0000000f	return to idle state
+
+
+Exposure
+x32	 | 4400f001	serial clock initial conditions
+
+x33	 | 82c0f002	parallel clock initial conditions
+
+x34	 | 82e40802	shutter open
+x35	 | bb004001	reset active
+
+x36	 | 4400f001	turn reset off no delay
+
+x37	 | cc002001	h3 low
+
+x38	 | 88002001	h2 high
+
+x39	 | aa002001	h1 low
+
+x40	 | 22002001	h3 high
+
+x41	 | 66002001	h2 low
+
+x42	 | 44001001	h1 high wait reset settling
+
+x43	 | 44001801	sample reset
+
+x44	 | 44c03001	summing well high
+
+x45	 | 44000001	summing well low signal settling
+
+x46	 | 44000801	sample signal
+
+x47	 | 4400f001	turn off sampling
+
+x48	 | 4400f001	00223008	loop to 34 for num shutter pi
+
+x49	 | 4400f001	00220008	loop to 34 for num of col
+
+x50	 | 82c00802	shutter close
+
+
+x51	 | 55004001	reset active
+
+x52	 | 4400f001	turn reset off no delay
+
+x53	 | cc002001	h3 low
+
+x54	 | 88002001	h2 high
+
+x55	 | aa002001	h1 low
+
+x56	 | 22002001	h3 high
+
+x57	 | 66002001	h2 low
+
+x58	 | 44001001	h1 high wait reset settling
+
+x59	 | 44011801	sample reset
+
+x60	 | 44c03001	summing well high
+
+x61	 | 44000001	summing well low signal settling
+
+x62	 | 44020801	sample signal
+
+x63	 | 4400f001	turn off sampling
+
+x64	 | 00330008	loop to 51 for num col
+
+x65	 | c6405002	V2 high
+
+x66	 | 44005002	V1 low  TG low
+
+x67	 | 6c005002	V3 high
+
+x68	 | 28805002	V2 low
+
+x69	 | aac05002	V1,TG high
+
+x70	 | 82c05002	V3 low
+ clamp off
+x71	 | 00331008	loop to 51 for num rows
+
+x72	 | 0000000f	return to idle state
+		
+
+
+x96	 | 4400f001	serial clock initial conditions
+
+x97	 | 82c0f002	parallel clock initial conditions
+
+x98	 | 55004001	reset active
+
+x99	 | 4400f001	turn reset off no delay
+
+x100	 | cc002001	h3 low
+
+x101	 | 88002001	h2 high
+
+x102	 | aa002001	h1 low
+
+x103	 | 22002001	h3 high
+
+x104	 | 66002001	h2 low
+
+x105	 | 44002001	h1 high
+
+x106	 | 44c03001	summing well high
+
+x107	 | 44003001	summing well low
+
+x108	 | 00622008	loop to 66 for num clear col
+
+x109	 | c6005002	V2 high TG low
+
+x110	 | 44005002	V1 low
+
+x111	 | 6c005002	V3 high
+
+x112	 | 28005002	V2 low
+
+x113	 | aac05002	V1,TG high
+
+x114	 | 82c05002	V3 low
+
+x115	 | 00621008	loop to 66 for num rows
+
+x116	 | 0000000f	return to idle state
+		
+
+
+x128	 | 55004001	reset active
+
+x129	 | 4400f001	turn reset off no delay
+
+x130	 | cc002001	h3 low
+
+x131	 | 88002001	h2 high
+
+x132	 | aa002001	h1 low
+
+x133	 | 22002001	h3 high
+
+x134	 | 66002001	h2 low
+
+x135	 | 44001001	h1 high wait reset settling
+
+x136	 | 44011801	sample reset
+
+x137	 | 44c03001	summing well high
+
+x138	 | 44000001	summing well low signal settling
+
+x139	 | 44020801	sample signal
+
+x140	 | 4400f001	turn off sampling
+
+x141	 | 00800008	loop to 128 for num col
+
+x142	 | cc005002	V2 high TG low
+
+x143	 | 44005002	V1 low
+
+x144	 | 66005002	V3 high
+
+x145	 | 22005002	V2 low
+
+x146	 | aac05002	V1,TG high
+
+x147	 | 88c05002	V3 low
+
+x148	 | 0000000f	return to idle state
+
+<!--QQendQQ-->		

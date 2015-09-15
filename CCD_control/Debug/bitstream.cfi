@@ -1,0 +1,11 @@
+# PROMGEN: Xilinx Prom Generator O.87xd
+# Copyright (c) 1995-2011 Xilinx, Inc.  All rights reserved.
+
+SOFTWARE_VERSION O.87xd
+DATE            06/04/2014 - 13:18
+SOURCE          C:\project\xps\SDK\SDK_Export\CCD_readout_web\Debug\bitstream.mcs
+DEVICE          16384K
+DATA_WIDTH      4
+FILL_DATA       0xFF
+SIGNATURE       0xEA61DAA8
+START_ADDRESS   0x00000000 END_ADDRESS 0x0016AB0B DIRECTION_UP   "C:/project/xps/implementation/download.bit" 6slx45tcsg324

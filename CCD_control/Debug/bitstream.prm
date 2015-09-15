@@ -1,0 +1,17 @@
+PROMGEN: Xilinx Prom Generator O.87xd
+Copyright (c) 1995-2011 Xilinx, Inc.  All rights reserved.
+
+promgen -w -p mcs -c FF -o C:/project/xps/SDK/SDK_Export/CCD_readout_web/Debug/bitstream.mcs -s 16384 -u 0 C:/project/xps/implementation/download.bit -spi 
+
+PROM C:\project\xps\SDK\SDK_Export\CCD_readout_web\Debug\bitstream.prm map: Wed Jun 04 13:18:22 2014
+
+Calculating PROM checksum with fill value ff
+
+Format        Mcs86 (32-bit)
+Size          16384K
+PROM start    0000:0000
+PROM end      00ff:ffff
+PROM checksum ea61daa8
+
+        Addr1        Addr2                     Date File(s)
+    0000:0000    0016:ab0b     Oct 23 16:48:17 2013 C:/project/xps/implementation/download.bit
