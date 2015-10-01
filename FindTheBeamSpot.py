@@ -239,7 +239,7 @@ for i in range(len(ProfileGraphs)):
   # Now mark the maximum value with a TGraph object.
   MeanXGraphs.append(ROOT.TGraphErrors(1, 
                                        array.array("f", [ProfGraMeans[i]]), 
-                                       array.array("f", [0.5 * SpotHalfAmplVsY[i]]),
+                                       array.array("f", [SpotHalfAmplVsY[i]]),
                                        array.array("f", [ProfGraRMSs[i]]),
                                        array.array("f", [0.])))
   MeanXGraphs[-1].SetMarkerStyle(20)
@@ -248,8 +248,7 @@ for i in range(len(ProfileGraphs)):
   MeanXGraphs[-1].SetLineWidth(2)
   MeanXGraphs[-1].SetLineColor(ROOT.kRed)
   MeanXGraphs[-1].Draw("samep")
-  # And the mean values...
-
+  # Write this frame to the animated gif.
   aCanvas.Update()
   aPad.Print(PlotFileName + "+", "gif+01")
 
@@ -286,6 +285,46 @@ ImageHisto.Draw("surf3")
 aCanvas.Update()
 PlotFileName = InputFilePath.replace(".root", "." + OutputTag + ".zoom.surf3.png")
 aCanvas.SaveAs(PlotFileName)
+
+# Now calculate the weighted average x position of the spot for +/- 0.5 mm of the maximum.
+SpotXAvgHalfRange = 0.5 #[mm]
+SpotXAvg = 0.
+SpotXAvgUnc = 0.
+nPointsInSpotXAvg = 0
+for i in range(SpotMeanProfile.GetN()):
+  if((SpotMeanProfile.GetY()[i] > (SpotMaxY - SpotXAvgHalfRange)) and 
+     (SpotMeanProfile.GetY()[i] < (SpotMaxY + SpotXAvgHalfRange))):
+    SpotXAvg += SpotMeanProfile.GetX()[i]
+    SpotXAvgUnc += SpotMeanProfile.GetEX()[i]
+    nPointsInSpotXAvg += 1
+SpotXAvg /= float(nPointsInSpotXAvg)
+SpotXAvgUnc /= float(nPointsInSpotXAvg)
+print "\tWeighted average spot position is at x = " + "{:2.3f}".format(SpotXAvg) + " +/-" + "{:2.3f}".format(SpotXAvgUnc), "mm for y = " + "{:2.3f}".format(SpotMaxY) + " +/- " + "{:2.3f}".format(SpotXAvgHalfRange) + " mm."
+
+# Now that we've calculated the weighted average of each x-slice through the beam spot as a
+# function of y as well as the weighted average of the beamspot near its maximum, we can stack all
+# those y slices up such that their weighted averages all line up with one another.
+aPad.SetLeftMargin(0.08)
+aPad.SetRightMargin(0.02)
+xPixelPitch_mm = 0.005
+nBins = int((SpotHiX_mm - SpotLoX_mm) / xPixelPitch_mm) + 1
+BeamSpotXProf = ROOT.TH1D("BeamSpotXProf", "Corrected Beamspot Profile in X", nBins, SpotLoX_mm, SpotHiX_mm)
+BeamSpotXProf.GetXaxis().SetTitle("Corrected X Position [mm]")
+BeamSpotXProf.GetYaxis().SetTitle("Projected Spot Profile [ADC Units]")
+BeamSpotXProf.GetYaxis().SetTitleOffset(1.2)
+BeamSpotXProf.SetLineColor(ROOT.kBlue)
+BeamSpotXProf.SetLineWidth(2)
+for i in range(len(ProfileGraphs)):
+  thisOffset = SpotXAvg - ProfGraMeans[i]
+  for j in range(ProfileGraphs[i].GetN()):
+    thisXVal = ProfileGraphs[i].GetX()[j] + thisOffset
+    thisYVal = ProfileGraphs[i].GetY()[j]
+    BeamSpotXProf.Fill(thisXVal, thisYVal)
+BeamSpotXProf.Draw()
+aCanvas.Update()
+PlotFileName = InputFilePath.replace(".root", "." + OutputTag + ".BeamSpotXProf.pdf")
+aCanvas.SaveAs(PlotFileName)
+
 # Finally, let's draw a heat map plot that is actally at the correct aspect ratio.
 AspectRatio = (SpotHiX_mm - SpotLoX_mm) / (SpotHiY_mm - SpotLoY_mm)
 del aPad
@@ -314,20 +353,6 @@ aCanvas.Update()
 PlotFileName = InputFilePath.replace(".root", "." + OutputTag + ".zoom.TrueAR.png")
 aCanvas.SaveAs(PlotFileName)
 
-# Now calculate the weighted average x position of the spot for +/- 0.5 mm of the maximum.
-SpotXAvgHalfRange = 0.5 #[mm]
-SpotXAvg = 0.
-SpotXAvgUnc = 0.
-nPointsInSpotXAvg = 0
-for i in range(SpotMeanProfile.GetN()):
-  if((SpotMeanProfile.GetY()[i] > (SpotMaxY - SpotXAvgHalfRange)) and 
-     (SpotMeanProfile.GetY()[i] < (SpotMaxY + SpotXAvgHalfRange))):
-    SpotXAvg += SpotMeanProfile.GetX()[i]
-    SpotXAvgUnc += SpotMeanProfile.GetEX()[i]
-    nPointsInSpotXAvg += 1
-SpotXAvg /= float(nPointsInSpotXAvg)
-SpotXAvgUnc /= float(nPointsInSpotXAvg)
-print "\tWeighted average spot position is at x = " + "{:2.3f}".format(SpotXAvg) + " +/-" + "{:2.3f}".format(SpotXAvgUnc), "mm for y = " + "{:2.3f}".format(SpotMaxY) + " +/- " + "{:2.3f}".format(SpotXAvgHalfRange) + " mm."
 # Now that we're done with ImageHisto, close the file it came from.
 InputFile.Close()
 
