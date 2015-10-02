@@ -64,7 +64,7 @@ else:
   exit()
 
 # Put together the plot.
-plt.figure(figsize=(8,5))
+plt.figure(figsize=(7, 4))
 plt.plot(TimeData, TempData, linestyle='-', linewidth=2)
 
 # Make the plot look nice.
