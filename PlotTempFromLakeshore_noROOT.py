@@ -64,14 +64,14 @@ else:
   exit()
 
 # Put together the plot.
-plt.figure(figsize=(7, 4))
+plt.figure(figsize=(7,4))
 plt.plot(TimeData, TempData, linestyle='-', linewidth=2)
 
 # Make the plot look nice.
 plt.xlabel('Time')
 plt.ylabel('Temperature [C]')
 plt.gcf().autofmt_xdate()
-plt.grid(b=True, which='major', color='k', linestyle='--')
+plt.grid(b=True, which='major', color='k', linestyle=':')
 
 # Show the plot for a while and then save it to a pdf.
 plt.tight_layout()
