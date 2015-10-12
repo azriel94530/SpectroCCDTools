@@ -231,7 +231,7 @@ aCanvas.Update()
 aCanvas.SaveAs(InputFilePath.replace(".root", "." + PixValHisto_AbvThrsh.GetName() + ".pdf"))
 PixValHisto_AbvThrsh.SetTitle("Thresh. Cut")
 
-print "\tFinding aixels above threshold that are local maxima..."
+print "\tFinding pixels above threshold that are local maxima..."
 xBinsLocMax = []
 yBinsLocMax = []
 for i in range(len(PixelValuesAboveThr)):

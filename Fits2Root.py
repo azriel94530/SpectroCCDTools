@@ -117,7 +117,7 @@ QuadraticFit = ROOT.TF1("QuadraticFit", "[0] + ([1] * x) + ([2] * (x^2))", yLo, 
 EdgeBuffer = 50 #Number of pixels to cheat in from the edges since they are some times kind of wonky.
 FitLo = ColumnGraphs[0].GetX()[EdgeBuffer]
 FitHi = ColumnGraphs[0].GetX()[ColumnGraphs[0].GetN() - EdgeBuffer]
-FracDiffThresh = 0.01 # Fractional deviation allowed to make it into the quadratic fit.
+FracDiffThresh = 0.02 # Fractional deviation allowed to make it into the quadratic fit.
 FracDiffCount = numpy.zeros(nPixelsX)
 iColumn = -1
 for graph in ColumnGraphs:

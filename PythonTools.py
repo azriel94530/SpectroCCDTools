@@ -115,7 +115,7 @@ def Progress(thispixel, totalpixels):
 
 def GetOneGausFitModel(fitmodelname, templatehisto, mean, sigm):
   MeanHalfWindow = 100.
-  LoFrac =  0.5
+  LoFrac =  0.1
   HiFrac =  1.5
   FitModelString  = "[0] + (([1] * exp(-1. * (((x - [2]) / (1.414 * [3]))^2.))))"
   
@@ -345,6 +345,7 @@ def MakePixValHisto(histoname, histotitle, nbins, xlo, xhi, color):
 def MakeOneGausFitAnnotation(fitmodel):
   thisChi2 = fitmodel.GetChisquare()
   thisNDF  = fitmodel.GetNDF()
+  if(thisNDF == 0): thisNDF = 1
   thisPVal = fitmodel.GetProb()
   Mean = fitmodel.GetParameter(2)
   MeEr = fitmodel.GetParError(2)
@@ -373,6 +374,7 @@ def MakeOneGausFitAnnotation(fitmodel):
 def MakeTwoGausFitAnnotation(fitmodel):
   thisChi2 = fitmodel.GetChisquare()
   thisNDF  = fitmodel.GetNDF()
+  if(thisNDF == 0): thisNDF = 1
   thisPVal = fitmodel.GetProb()
   LoMean = fitmodel.GetParameter(2)
   LoMeEr = fitmodel.GetParError(2)
@@ -409,6 +411,7 @@ def MakeTwoGausFitAnnotation(fitmodel):
 def MakeFitAnnotationRW(fitmodel):
   thisChi2 = fitmodel.GetChisquare()
   thisNDF  = fitmodel.GetNDF()
+  if(thisNDF == 0): thisNDF = 1
   thisPVal = fitmodel.GetProb()
   Gnor = fitmodel.GetParameter(0)
   GnEr = fitmodel.GetParError(0)
