@@ -10,7 +10,7 @@
 import time
 import sys
 import astropy.io.fits
-import numpy
+import numpy as np
 import array
 
 ####################################
@@ -73,57 +73,47 @@ thatHistogram.GetYaxis().SetTitleOffset(0.7)
 # subtract off the background.
 ColumnGraphs = []
 
+# Convert the pixel value array from the fits image into a numpy array so that we can process it a
+# bit faster.  Also, split it into columns so that we can do a fit to them next...
+imageArray = np.array(thisImage[0].data)
+if(VerboseProcessing): print "\n\tReading in the individual columns for this image."
+imageColumns = np.split(imageArray, imageArray.shape[1], axis=1)
+imageColumnsUnc   = [np.sqrt(imageColumns[i]) for i in range(len(imageColumns))]
+thisYPositionData = [yLo + (float(i) * lPixelY) for i in range(nPixelsY)]
+thisYPositionUnc  = [0.5 * lPixelY for i in range(nPixelsY)]
+
 # Step over all the pixels in the fits image and put their content in the corresponding bin in the
 # TH2F or in to the overscan stack as appropriate.
-if(VerboseProcessing): print "\n\tReading in the individual columns for this image."
 iPixel = 0
-OverScanPixel = False
 for binX in range(nPixelsX):
-  thisColumnData    = numpy.zeros(nPixelsY)
-  thisColumnUnc     = numpy.zeros(nPixelsY)
-  thisYPositionData = numpy.zeros(nPixelsY)
-  thisYPositionUnc  = numpy.zeros(nPixelsY)
-  for binY in range(nPixelsY):
-    # Extract the current pixel value from the image, then save it along with the current 
-    # y/column position to a pair of arrays for future background fits
-    thisPixelValue = thisImage[0].data[binY][binX]
-    thisColumnData[binY] = thisPixelValue
-    thisColumnUnc[binY]  = numpy.sqrt(thisPixelValue)
-    thisYPositionData[binY] = yLo + (binY * lPixelY)
-    thisYPositionUnc[binY] = 0.5 * lPixelY
-    iPixel += 1
-    if((nPixels >= 100) and (iPixel % int(nPixels / 100) == 0)):
-      ROOT.StatusBar(iPixel, nPixels, int(nPixels / 100))
-  thisColumnGraph = ROOT.TGraphErrors(nPixelsY, thisYPositionData, thisColumnData, thisYPositionUnc, thisColumnUnc)
-  #thisColumnGraph.SetMarkerStyle(20)
-  #thisColumnGraph.SetMarkerSize(1)
-  #thisColumnGraph.SetMarkerColor(ROOT.kBlue)
+  if((nPixelsX >= 100) and (binX % int(nPixelsX / 100) == 0)):
+    ROOT.StatusBar(binX, nPixelsX, int(nPixelsX / 100))
+  thisColumnGraph = ROOT.TGraphErrors(nPixelsY, array.array("f", thisYPositionData), array.array("f", imageColumns[binX]), 
+                                                array.array("f", thisYPositionUnc),  array.array("f", imageColumnsUnc[binX]))
   ColumnGraphs.append(thisColumnGraph)
 print
 
 # Construct a fit to the background for each column in the CCD.
 if(VerboseProcessing): print "\n\tConstructing column-by-column background model."
-XPositions  = numpy.zeros(nPixelsX)# Since we're going to be ploting a bunch of things as a function of this...
-XPositiErs  = numpy.zeros(nPixelsX)
-ConstaCoefs = numpy.zeros(nPixelsX)# To save the fit coefficients and uncertainties
-ConstaCoErs = numpy.zeros(nPixelsX)
-LinearCoefs = numpy.zeros(nPixelsX)
-LinearCoErs = numpy.zeros(nPixelsX)
-QuadraCoefs = numpy.zeros(nPixelsX)
-QuadraCoErs = numpy.zeros(nPixelsX)
-ChiSqupNDFs = numpy.zeros(nPixelsX)# To save the chi squared values
+XPositions  = [xLo + (i * lPixelX) for i in range(nPixelsX)]# Since we're going to be ploting a bunch of things as a function of this...
+XPositiErs  = [0.5 * lPixelX for i in range (nPixelsX)]
+ConstaCoefs = np.zeros(nPixelsX)# To save the fit coefficients and uncertainties
+ConstaCoErs = np.zeros(nPixelsX)
+LinearCoefs = np.zeros(nPixelsX)
+LinearCoErs = np.zeros(nPixelsX)
+QuadraCoefs = np.zeros(nPixelsX)
+QuadraCoErs = np.zeros(nPixelsX)
+ChiSqupNDFs = np.zeros(nPixelsX)# To save the chi squared values
 LinearGuess  = ROOT.TF1("LinearGuess",  "[0] + ([1] * x)",                 yLo, yHi)
 QuadraticFit = ROOT.TF1("QuadraticFit", "[0] + ([1] * x) + ([2] * (x^2))", yLo, yHi)
 EdgeBuffer = 50 #Number of pixels to cheat in from the edges since they are some times kind of wonky.
 FitLo = ColumnGraphs[0].GetX()[EdgeBuffer]
 FitHi = ColumnGraphs[0].GetX()[ColumnGraphs[0].GetN() - EdgeBuffer]
 FracDiffThresh = 0.02 # Fractional deviation allowed to make it into the quadratic fit.
-FracDiffCount = numpy.zeros(nPixelsX)
+FracDiffCount = np.zeros(nPixelsX)
 iColumn = -1
 for graph in ColumnGraphs:
   iColumn += 1
-  XPositions[iColumn] = xLo + (iColumn * lPixelX)
-  XPositiErs[iColumn] = 0.5 * lPixelX
   if((nPixelsY >= 100) and (iColumn % int(nPixelsY / 100) == 0)):
       ROOT.StatusBar(iColumn, nPixelsY, int(nPixelsY / 100))
   # First just do a linear fit to get rid of outlying pixels
@@ -135,7 +125,7 @@ for graph in ColumnGraphs:
   graph.Fit("LinearGuess", "QN", "", FitLo, FitHi)
   # Step over the points in the graph and throw out points that deviate by more than FracDiffThresh. 
   for i in range(graph.GetN()):
-    if(numpy.abs(graph.GetY()[i] - LinearGuess.Eval(graph.GetX()[i])) > numpy.abs(FracDiffThresh * graph.GetY()[i])):
+    if(np.abs(graph.GetY()[i] - LinearGuess.Eval(graph.GetX()[i])) > np.abs(FracDiffThresh * graph.GetY()[i])):
       graph.GetX()[i] = -10.
       graph.GetY()[i] = -10.
       FracDiffCount[iColumn] += 1
@@ -154,7 +144,7 @@ for graph in ColumnGraphs:
   ChiSqupNDFs[iColumn] = QuadraticFit.GetChisquare() / float(QuadraticFit.GetNDF())
 print
 if(VerboseProcessing): print "\tWe just did", len(ColumnGraphs), "fits.  Saving the salient results..."
-FracDiffCountGraph = PythonTools.CreateTGraph(XPositions, FracDiffCount, XPositiErs, numpy.zeros(nPixelsX), 
+FracDiffCountGraph = PythonTools.CreateTGraph(XPositions, FracDiffCount, XPositiErs, np.zeros(nPixelsX), 
                                          "FracDiffCountGraph", "Number of Outlying Points Excluded from Quadratic Fit to Pixel Column", 
                                          ROOT.kBlack, "Pixel Column X Position [mm]", "Number of Excluded Points")
 FitCoefGraph0 = PythonTools.CreateTGraph(XPositions, ConstaCoefs, XPositiErs, ConstaCoErs, 
@@ -166,43 +156,35 @@ FitCoefGraph1 = PythonTools.CreateTGraph(XPositions, LinearCoefs, XPositiErs, Li
 FitCoefGraph2 = PythonTools.CreateTGraph(XPositions, QuadraCoefs, XPositiErs, QuadraCoErs, 
                                          "FitCoefGraph2", "Quadratic Coefficients for Fit to Pixel Column", 
                                          ROOT.kRed, "Pixel ColumnX Position [mm]", "Quadr. Coef. [ADC Counts/mm^{2}]")
-ChiSquareGraph = PythonTools.CreateTGraph(XPositions, ChiSqupNDFs, XPositiErs, numpy.zeros(nPixelsX), 
+ChiSquareGraph = PythonTools.CreateTGraph(XPositions, ChiSqupNDFs, XPositiErs, np.zeros(nPixelsX), 
                                           "ChiSquareGraph", "#chi^{2} per Degree of Freedom for Fit to Pixel Column", 
                                           ROOT.kBlack, "Pixel ColumnX Position [mm]", "#chi^{2}/NDF")
 
 # And step over the image buffer one more time to histogram the backgruond corrected pixel values.
 if(VerboseProcessing): print "\n\tMake a background corrected two-dimensional histogram of the image."
 iPixel = 0
-MeanPixVal   = 0.
-MeanPixValSq = 0.
-MinPixVal =  1.e12
-MaxPixVal = -1.e12
+BGCorPixVals = []
 for binX in range(nPixelsX):
   QuadraticFit.SetParameter(0, ConstaCoefs[binX])
   QuadraticFit.SetParameter(1, LinearCoefs[binX])
   QuadraticFit.SetParameter(2, QuadraCoefs[binX])
   for binY in range(nPixelsY):
-    thisPixelValue = thisImage[0].data[binY][binX] - QuadraticFit.Eval(thisYPositionData[binY])
+    imageArray[binY][binX] -= QuadraticFit.Eval(thisYPositionData[binY])
     thatBin = thatHistogram.FindBin(XPositions[binX], thisYPositionData[binY])
     if(Debugging): print "Writing value:", thisPixelValue, "to bin number:", thatBin, "(position:", binX, "x", str(binY) + ")"
-    if(thisPixelValue < MinPixVal): MinPixVal = thisPixelValue
-    if(thisPixelValue > MaxPixVal): MaxPixVal = thisPixelValue
-    MeanPixVal += (thisPixelValue / float(nPixels))
-    MeanPixValSq += ((thisPixelValue**2.) / float(nPixels))
     iPixel += 1
     if((nPixels >= 100) and (iPixel % int(nPixels / 100) == 0)):
       ROOT.StatusBar(iPixel, nPixels, int(nPixels / 100))
 print
 # Now that we have the mean of both the pixel value and its square, calculate the RMS.
-RMSPixelVal = numpy.sqrt(MeanPixValSq - (MeanPixVal**2.))
+BGCorPixVals = np.ravel(imageArray)
+MeanPixVal  = np.mean(BGCorPixVals)
+RMSPixelVal = np.std(BGCorPixVals)
+MinPixVal = np.min(BGCorPixVals)
+MaxPixVal = np.max(BGCorPixVals)
 if(VerboseProcessing):
-  print "\tMean pixel value: " + "{:5.1}".format(MeanPixVal) + " +/- " + "{:5.1f}".format(RMSPixelVal)
-  print "\tFull range was from " + "{:5.1}".format(MinPixVal) + " to " + "{:5.1f}".format(MaxPixVal)
-# Set the Z axis range on the histogram so that the contrast doesn't look terrible.
-DisplayMin = MeanPixVal - (4. * RMSPixelVal)
-DisplayMax = MeanPixVal + (6. * RMSPixelVal)
-#if(VerboseProcessing): print "\tSetting Z range: " + "{:5.1}".format(DisplayMin) + " to " + "{:5.1}".format(DisplayMax)
-#thatHistogram.GetZaxis().SetRangeUser(DisplayMin, DisplayMax)
+  print "\tMean pixel value: " + "{:5.1f}".format(MeanPixVal) + " +/- " + "{:5.1f}".format(RMSPixelVal)
+  print "\tFull range was from " + "{:5.1f}".format(MinPixVal) + " to " + "{:5.1f}".format(MaxPixVal)
 
 # Now that we know what the range of this histogram should be, build a background-corrected pixel
 # value histogram for the whole chip.
@@ -213,8 +195,7 @@ for binX in range(nPixelsX):
   QuadraticFit.SetParameter(1, LinearCoefs[binX])
   QuadraticFit.SetParameter(2, QuadraCoefs[binX])
   for binY in range(nPixelsY):
-    thisPixelValue = thisImage[0].data[binY][binX] - QuadraticFit.Eval(thisYPositionData[binY])
-    thatHistogram.SetBinContent(binX, binY, thisPixelValue)
+    thatHistogram.SetBinContent(binX, binY, imageArray[binY][binX])
     iPixel += 1
     if((nPixels >= 100) and (iPixel % int(nPixels / 100) == 0)):
       ROOT.StatusBar(iPixel, nPixels, int(nPixels / 100))

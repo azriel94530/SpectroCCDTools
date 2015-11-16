@@ -303,7 +303,8 @@ def CreateTGraph(xarray, yarray, xerrarray, yerrarray, name, title, color, xaxti
   AxisTitleSize = 0.05
   AxisTitleOffset = 0.7
   AxisLabelSize = 0.03
-  thisGraph = ROOT.TGraphErrors(len(xarray), xarray, yarray, xerrarray, yerrarray)
+  thisGraph = ROOT.TGraphErrors(len(xarray), array.array("f", xarray),    array.array("f", yarray), 
+                                             array.array("f", xerrarray), array.array("f", yerrarray))
   thisGraph.SetName(name)
   thisGraph.SetTitle(title)
   thisGraph.SetMarkerStyle(20)

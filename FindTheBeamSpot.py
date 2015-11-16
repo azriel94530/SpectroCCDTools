@@ -103,8 +103,7 @@ if(Debugging): print Ybins
 
 # Calculate the mean and RMS of the pixel values in this image.
 print "\tReading in pixel values from TH2D to find the beam spot..."
-PVMean = 0.
-PVMeSq = 0.
+PixelValues = []
 PVMax = -1.e6
 MaxBinX = -10
 MaxBinY = -10
@@ -113,8 +112,7 @@ iVal = 0
 for xbin in Xbins:
   for ybin in Ybins:
     thisPV = ImageHisto.GetBinContent(xbin, ybin)
-    PVMean += ( thisPV / float(nValues))
-    PVMeSq += ((thisPV**2.) / float(nValues))
+    PixelValues.append(thisPV)
     if(thisPV > PVMax):
       PVMax = thisPV
       MaxBinX = xbin
@@ -123,7 +121,8 @@ for xbin in Xbins:
     if((nValues >= 100) and (iVal % int(nValues / 100) == 0)):
       ROOT.StatusBar(iVal, nValues, int(nValues / 100))
 print
-PVRMS = (PVMeSq - (PVMean**2.))**0.5
+PVMean = numpy.mean(PixelValues)
+PVRMS  = numpy.std(PixelValues)
 print "\tPixel value mean is: " + "{:3.1f}".format(PVMean) + " +/- " + "{:0.1f}".format(PVRMS)
 SpotMaxX = ImageHisto.GetXaxis().GetBinCenter(MaxBinX)
 SpotMaxY = ImageHisto.GetYaxis().GetBinCenter(MaxBinY)
@@ -199,9 +198,6 @@ ProfGraRMSs = []
 Ybins = range(SpotLoY, SpotHiY + 1)
 YValues = []
 Zeros = []
-#SpotMaxXVsY = []
-#SpotHalfMaxXLoVsY = []
-#SpotHalfMaxXHiVsY = []
 SpotHalfAmplVsY = []
 SpotLocGraphs = []
 for thisYbin in Ybins:

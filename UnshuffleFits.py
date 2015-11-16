@@ -13,7 +13,8 @@ import time
 import sys
 import os
 import astropy.io.fits
-import numpy
+import numpy as np
+import matplotlib.pyplot as plt
 import PythonTools
 
 ####################################
@@ -75,7 +76,7 @@ lCCDY = nRealPixelsY * lPixelY
 nPixelsXnew = nRealPixelsX
 nPixelsYnew = nRealPixelsY
 nPixelsnew = nPixelsXnew * nPixelsYnew
-thatArray = numpy.zeros((nPixelsYnew, nPixelsXnew))
+thatArray = np.zeros((nPixelsYnew, nPixelsXnew))
 
 if(VerboseProcessing):
   print "\t'" + InputFilePath + "' is", nPixelsXold, "x", nPixelsYold, "pixels."
@@ -84,52 +85,61 @@ if(VerboseProcessing):
 # Set the row and column offset since the controler seems to wrap rows and columns (mostly
 # columns) around the images we read out.
 RowOffset = 0
-ColumnOffset = 39
+ColumnOffset = -39
 
-# A list of overscan pixel values for us to histogram at the end.
-OversanPixelValues = []
+# Convert the image array into the a numpy array...
+imageArray = np.array(thisImage[0].data)
 
-# Step over all the pixels in the old fits image and put and assign their values to the
-# appropriate location in the new one.
-iPixel = 0
-for column in range(nPixelsXold):
-  for row in range(nPixelsYold):
-    iPixel += 1
-    PythonTools.Progress(iPixel, nPixelsold)
-    thisPixelValue = thisImage[0].data[row][column]
-    if(Debugging): 
-      print "Reading in value:", thisPixelValue, "from row", row, "and column", column
-    # First we fix the offset and wrap-around.
-    NewRow, NewColumn = PythonTools.FixSpectroCCDOffset(row, column, nRealPixelsY * 2, nRealPixelsX / 2, RowOffset, ColumnOffset)
-    if(Debugging): 
-      print "\t...and writing it to row", NewRow, "and column", NewColumn, "after fixing the wrap-around."
-    # Next, we deal with the overscan.
-    NewRow, NewColumn = PythonTools.RemoveSpectroCCDOverscan(NewRow, NewColumn, nPixelsYold, nPixelsXold, nRealPixelsY, nRealPixelsX)
-    if((NewRow == -10) or (NewColumn == -10)):
-      #PythonTools.RemoveSpectroCCDOverscan returns a -10 as to either NewRow and/or NewColumn
-      # if it finds the pixel location to be in one of the overscan regions, and just subtracts out
-      # the overscan pixel number if it is not.
-      OversanPixelValues.append(thisPixelValue)
-      if(Debugging): print "Row", row, "and Column", column, "is in the overscan region!"
-      continue
-    else: 
-      if(Debugging): print "Row", row, "and Column", column, "maps to", NewRow, "and", NewColumn, "after removing the overscan."
-    # Next we fix the relative reflection of the bottom half of the image (we may not have to do this forever...).
-    NewRow, NewColumn = PythonTools.FlipSpectroCCDBottom(NewRow, NewColumn, nRealPixelsY * 2, nRealPixelsX / 2)
-    if(Debugging): 
-      print "\t...and writing it to row", NewRow, "and column", NewColumn, "after flipping the bottom of the image."
-    # Shuffle the columns together to interdigitate.
-    NewRow, NewColumn = PythonTools.InterdigitateSpectroCCDPixels(NewRow,           NewColumn, 
-                                                                  nRealPixelsY * 2, nRealPixelsX / 2, 
-                                                                  nPixelsYnew,      nPixelsXnew)
-    if(Debugging): print "\t...and writing it to row", NewRow, "and column", NewColumn, "after interdigitating."
-    # Fix the last remaining pixel offsets between the odd and even pixels.
-    NewRow = PythonTools.FixSpectroCCDPixelOffset(PixelShift, NewRow, NewColumn, nPixelsYnew)
-    if(Debugging): print "\t...and writing it to row", NewRow, "and column", NewColumn, "now that we're done."
-    thatArray[NewRow][NewColumn] = thisPixelValue
-if(Debugging): 
-  print thisImage[0].data
-  print thatArray
+# Fix the wrap-around:
+imageArray = np.roll(imageArray, RowOffset,    axis=0)
+imageArray = np.roll(imageArray, ColumnOffset, axis=1)
+
+# Flip the bottom of the image with respect to the top.
+splitImage = np.split(imageArray, 2, 0)
+imageTop, imageBot = splitImage[0], splitImage[1]
+imageBot = np.fliplr(imageBot)
+
+# Separate out the horizontal overscan and image regions since they end up at different parts of
+# the image after interdigitation.  The horizontal overscan is at the bottom of the top image and
+# the top of the bottom image.
+splitImage = np.split(imageTop, [nRealPixelsY], axis=0)
+imageTop_Real, imageTop_OS = splitImage[0], splitImage[1]
+splitImage = np.split(imageBot, [(nPixelsYold / 2) - nRealPixelsY], axis=0)
+imageBot_Real, imageBot_OS = splitImage[1], splitImage[0]
+
+if(Debugging):
+  print "Real Top:", imageTop_Real.shape
+  print "Ovsc Top:", imageTop_OS.shape
+  print "Real Bot:", imageBot_Real.shape
+  print "Ovsc Bot:", imageBot_OS.shape
+
+# Interdigitate the top and bottom together...
+TopColumns = np.split(imageTop_Real, imageTop_Real.shape[1], axis=1)
+BotColumns = np.split(imageBot_Real, imageBot_Real.shape[1], axis=1)
+for icol in range(imageTop_Real.shape[1]):
+  # Roll the top column by the pixel shift
+  thisTopColumn = np.roll(TopColumns[icol], -1 * PixelShift, axis=0)
+  if(icol == 0):
+    imageArray = np.hstack((thisTopColumn, BotColumns[icol]))
+  else:
+    imageArray = np.hstack((imageArray, thisTopColumn))
+    imageArray = np.hstack((imageArray, BotColumns[icol]))
+if(Debugging):
+  print "New Image with vertical overscan is of shape", imageArray.shape
+
+# Pull out the vertical overscan from the center of the top and bottom images.
+splitImage = np.split(imageArray, [nRealPixelsX / 2, imageArray.shape[1] - (nRealPixelsX / 2)], axis=1)
+imageArray_left  = splitImage[0]
+imageArray_overs = splitImage[1]
+imageArray_right = splitImage[2]
+if(Debugging):
+  print " Left half of the real image has the shape:", imageArray_left.shape
+  print "Right half of the real image has the shape:", imageArray_right.shape
+  print "Vertical overscan has the shape:",  imageArray_overs.shape
+# Glue the two halves of the real image together...
+thatArray = np.hstack((imageArray_left, imageArray_right))
+if(Debugging):
+  print "Real image is of the shape:", thatArray.shape
 
 # Write the new FITS file.
 thatHDU = astropy.io.fits.PrimaryHDU(thatArray)
@@ -142,42 +152,23 @@ if(Debugging):
   for entry in thatImage[0].header:
     print entry + "\t" + str(thatImage[0].header[entry])
 
-# Now Loop over the pixel values in the overscan region and put them into a histogram.
-if(len(OversanPixelValues) != 0):
-  import ROOT
-  import RootPlotLibs
-  import PythonTools
-  ROOT.gROOT.Reset()
-  ROOT.gROOT.ProcessLine(".L ./CompiledTools.C+")
-  OSPVBinWidth = 20.
-  OSPVIncr = 1.
-  OSPVMin = numpy.round(min(OversanPixelValues), 0)
-  while((OSPVMin % OSPVBinWidth) != (0.5 * OSPVBinWidth)):
-    OSPVMin -= OSPVIncr
-    #print OSPVMin
-  OSPVMax = numpy.round(max(OversanPixelValues), 0)
-  while((OSPVMax % OSPVBinWidth) != (0.5 * OSPVBinWidth)):
-    OSPVMax += OSPVIncr
-    #print OSPVMax
-  nOSPVBins = int((OSPVMax - OSPVMin) / OSPVBinWidth)
-  OSPVHisto = PythonTools.MakePixValHisto("OSPVHisto", "Overscan Pixel Values", nOSPVBins, OSPVMin, OSPVMax, ROOT.kBlack)
-  OSPVHisto.GetXaxis().SetTitle("Raw ADC Value")
-  for ospv in OversanPixelValues:
-    OSPVHisto.Fill(ospv)
-  aCanvas, aPad = RootPlotLibs.GetReadyToPlot()
-  aCanvas.Draw()
-  aCanvas.cd()
-  aPad.SetLeftMargin(0.08)
-  aPad.SetRightMargin(0.01)
-  aPad.SetBottomMargin(0.08)
-  aPad.Draw()
-  aPad.cd()
-  OSPVHisto.Draw()
-  aCanvas.Update()
-  aCanvas.SaveAs(OutputFilePath.replace("_UnShuf.fits", "_OverscanPixValHisto.pdf"))
-  aRootFile = ROOT.TFile(OutputFilePath.replace("_UnShuf.fits", "_OverscanPixValHisto.root"), "recreate")
-  OSPVHisto.Write()
-  aRootFile.Close()
+# A list of overscan pixel values for us to histogram at the end.
+OverscanTop = list(np.ravel(imageTop_OS))
+OverscanBot = list(np.ravel(imageBot_OS))
+OverscanVer = list(np.ravel(imageArray_overs))
+OversanPixelValues = OverscanTop + OverscanBot + OverscanVer
+
+# Histogram the overscan pixel values...
+xLo, xHi, xStep = float(min(OversanPixelValues)), float(max(OversanPixelValues)), 10.
+xBins = np.arange(xLo, xHi + xStep, xStep)
+plt.figure(num=None, figsize=(16, 9), dpi=80, facecolor='w', edgecolor='k')
+HistVals = plt.hist(OversanPixelValues, bins=xBins, facecolor='k', alpha=0.75)[0]
+plt.axis([xLo, xHi, 0., 1.05 * max(HistVals)])
+plt.xlabel('Overscan Pixel Value')
+plt.ylabel('Counts per ' + '{:0.1f}'.format(xStep) + ' ADC Unit Bin')
+plt.title('Histogram of Overscan Pixel Values')
+plt.grid(True)
+plt.savefig(OutputFilePath.replace("_UnShuf.fits", "_Overscan.png"))
 
 # Get the end time and report how long this calculation took
 StopTime = time.time()
