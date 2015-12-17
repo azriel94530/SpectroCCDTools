@@ -8,6 +8,7 @@ import Tkinter
 import ttk
 import time
 import os
+import numpy as np
 
 class simpleapp_tk(Tkinter.Tk):
   def __init__(self,parent):
@@ -41,19 +42,23 @@ class simpleapp_tk(Tkinter.Tk):
     self.labelVariable.set("Output will show up here...")
     self.OutputLabel = Tkinter.Label(self, textvariable=self.labelVariable, 
                           anchor="w", fg="white", bg="blue")
-    self.OutputLabel.grid(column=2, row=1, columnspan=1, sticky='EW')
+    self.OutputLabel.grid(column=2, row=1, columnspan=2, sticky='EW')
     self.labelVariable.set(u" ")
     # Add a separator between the read button and message fields.
     BottomSeparator = ttk.Separator(orient="vertical")
     BottomSeparator.grid(column=1, row=2)
+    # Add a label for image display.
+    self.InitialPhoto = Tkinter.PhotoImage(file="Initial.gif")
+    self.PhotoLabel = Tkinter.Label(self, image=self.InitialPhoto)
+    self.PhotoLabel.grid(column=3, row=0)
     # Add a progress bar...
     self.progressbar = ttk.Progressbar(self, orient='horizontal',
                                   length=300, mode='determinate')
     self.progressbar.pack(expand=True, fill=Tkinter.BOTH, side=Tkinter.TOP)
-    self.progressbar.grid(column=0, row=2, columnspan=3, sticky='EW')
+    self.progressbar.grid(column=0, row=2, columnspan=4, sticky='EW')
     # Allow the window to be resized.
     self.grid_columnconfigure(0,weight=1)
-    self.resizable(True,False)
+    self.resizable(True,True)
     self.update()
     self.geometry(self.geometry())
     # Fix some mouse focus issues.
@@ -61,7 +66,7 @@ class simpleapp_tk(Tkinter.Tk):
     self.entry.selection_range(0, Tkinter.END)
 
   def CCDRead(self):
-    self.labelVariable.set("(You clicked the button)")
+    self.labelVariable.set("Reading in the (fake) image...")
     self.update()
     ExpTime = float(self.ExpTimeEntryVar.get())
     self.progressbar["value"] = 0.
@@ -79,10 +84,10 @@ class simpleapp_tk(Tkinter.Tk):
   def DisplayImage(self):
     imagePath = os.getcwd() + "/testpattern.gif"
     #print imagePath
-    thisImage = Tkinter.PhotoImage(file=imagePath)
-    ImageDisplayLabel = Tkinter.Label(self, image=thisImage)
-    ImageDisplayLabel.pack(side="bottom", fill="both", expand="yes")
-    ImageDisplayLabel.grid(column=3, row=0, sticky='EW')
+    self.PhotoLabel.image = self.InitialPhoto
+    self.OutputPhoto = Tkinter.PhotoImage(file=imagePath)
+    self.PhotoLabel.configure(image=self.OutputPhoto)
+    self.PhotoLabel.grid(column=3, row=0)
     self.update()
 
   def SetExpTime(self,event):
