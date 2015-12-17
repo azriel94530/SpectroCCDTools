@@ -41,7 +41,7 @@ class simpleapp_tk(Tkinter.Tk):
     self.labelVariable = Tkinter.StringVar()
     self.labelVariable.set("Output will show up here...")
     self.OutputLabel = Tkinter.Label(self, textvariable=self.labelVariable, 
-                          anchor="w", fg="white", bg="blue")
+                          anchor="w", fg="white", bg="black")
     self.OutputLabel.grid(column=2, row=1, columnspan=2, sticky='EW')
     self.labelVariable.set(u" ")
     # Add a separator between the read button and message fields.
@@ -84,7 +84,7 @@ class simpleapp_tk(Tkinter.Tk):
   def DisplayImage(self):
     imagePath = os.getcwd() + "/testpattern.gif"
     #print imagePath
-    self.PhotoLabel.image = self.InitialPhoto
+    #self.PhotoLabel.image = self.InitialPhoto
     self.OutputPhoto = Tkinter.PhotoImage(file=imagePath)
     self.PhotoLabel.configure(image=self.OutputPhoto)
     self.PhotoLabel.grid(column=3, row=0)
