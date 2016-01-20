@@ -1,0 +1,80 @@
+# python script to read an ADC image from the SpectroCCD controller (soft ARM version)
+# Azriel Goldschmidt Jan-19-2016
+
+# need still to add error handling (and remove print outputs)
+# desired behaviour is passing error conditions to calling shell script
+
+import urllib
+import urllib2
+import urlparse
+import time
+from datetime import datetime
+import os
+
+controller_ip = "http://192.168.1.10/"
+output_file = '/home/user/SpectroCCD/sandbox_azriel/image.fits'
+
+# prepare the message for buffer discard and adc read operations
+# here the values are hardcoded (reflecting some specific state to the checkboxes in the ADC Conversion Settings
+# of the CCD timing web page (as served by the controller)
+# clear/erase/epurge all checked (need to ask if these are doing anything during CCD read or buffer discard)
+# idle status in idlemode (need to check if idlemode is changed when doing adc read or buffer discard)
+def get_utc():
+    now_utc = datetime.utcnow()
+    now_utc_iso = now_utc.isoformat()
+    now_utc_tosend =  now_utc_iso[0:13] + "-" + now_utc_iso[14:16] + "-" + now_utc_iso[17:19]
+    return now_utc_tosend
+
+params = "mydate="+"'"+ get_utc() +"'"+"&reply=discard&enclr=on&enera=on&enpur=on&idlestat=%3F%3F%3F"
+print "Parameters:", params
+
+print "Discard previous image in buffer"
+response = urllib2.urlopen(controller_ip + "cmd/bufdis", params)
+
+print "ADC read"
+response = urllib2.urlopen(controller_ip + "cmd/adcxhr", params)
+
+# Get all data
+html = response.read()
+print "Get all data: ", html
+
+# Get only the length
+print "Get the length :", len(html)
+
+# could verify here that response was OK
+
+print "Wait for the image to read out"
+not_done = True
+while not_done:
+    time.sleep(0.1)
+    params_status = "mydate="+"'"+ get_utc()+"'"+"&reply=Done&enclr=on&enera=on&enpur=on&idlestat=%3F%3F%3F"
+    response = urllib2.urlopen(controller_ip + "cmd/adcdon", params_status)
+    payload = response.read().rstrip().rstrip(",")
+    payload_synt = '{' + payload + '}' 
+    payload_dict = eval(payload_synt)
+    print payload_dict['rowIndex'],payload_dict['State']
+# kludging here the condition for when it is done reading (is it something in the header?)
+    if payload_dict['rowIndex'] == '0':
+	print "check if it is a fake 0:", payload_dict['rowIndex'],payload_dict['State']
+	if payload_dict['State'] == '621580':
+		print "it is Not a fake 0: ", payload_dict['State']
+		not_done = False
+   
+print "Start download"
+download_request = urllib2.urlopen(controller_ip + "image.fits")
+download_response = download_request.read()
+
+# Get the length
+print "The length of downloaded file :", len(download_response)
+
+print "write the downloaded file to disk"
+
+output = open(output_file,'wb')
+output.write(download_response)
+output.close()
+
+# now process with Vic's unshuffle code
+unshuff_output = os.system("python UnshuffleFits.py " + output_file + " 1")
+print "Unshuff output: " + str(unshuff_output)
+
+
