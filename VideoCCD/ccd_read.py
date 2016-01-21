@@ -10,9 +10,18 @@ import urlparse
 import time
 from datetime import datetime
 import os
+import sys
+
+if(len(sys.argv) != 2):
+  print "Usage: python Default_Directory "
+  exit()
+ 
+# 
+DirectoryPath = sys.argv[1]
 
 controller_ip = "http://192.168.1.10/"
-output_file = '/home/user/SpectroCCD/sandbox_azriel/image.fits'
+# location of the image file to be read from the ccd/controller
+output_file = DirectoryPath + "image.fits"
 
 # prepare the message for buffer discard and adc read operations
 # here the values are hardcoded (reflecting some specific state to the checkboxes in the ADC Conversion Settings
@@ -26,20 +35,20 @@ def get_utc():
     return now_utc_tosend
 
 params = "mydate="+"'"+ get_utc() +"'"+"&reply=discard&enclr=on&enera=on&enpur=on&idlestat=%3F%3F%3F"
-print "Parameters:", params
+## print "Parameters:", params
 
-print "Discard previous image in buffer"
+## print "Discard previous image in buffer"
 response = urllib2.urlopen(controller_ip + "cmd/bufdis", params)
 
-print "ADC read"
+## print "ADC read"
 response = urllib2.urlopen(controller_ip + "cmd/adcxhr", params)
 
 # Get all data
 html = response.read()
-print "Get all data: ", html
+## print "Get all data: ", html
 
 # Get only the length
-print "Get the length :", len(html)
+## print "Get the length :", len(html)
 
 # could verify here that response was OK
 
@@ -52,12 +61,11 @@ while not_done:
     payload = response.read().rstrip().rstrip(",")
     payload_synt = '{' + payload + '}' 
     payload_dict = eval(payload_synt)
-    print payload_dict['rowIndex'],payload_dict['State']
+##    print payload_dict['rowIndex'],payload_dict['State']
 # kludging here the condition for when it is done reading (is it something in the header?)
+# Armin has a bit that I should be checking instead
     if payload_dict['rowIndex'] == '0':
-	print "check if it is a fake 0:", payload_dict['rowIndex'],payload_dict['State']
 	if payload_dict['State'] == '621580':
-		print "it is Not a fake 0: ", payload_dict['State']
 		not_done = False
    
 print "Start download"
@@ -65,7 +73,7 @@ download_request = urllib2.urlopen(controller_ip + "image.fits")
 download_response = download_request.read()
 
 # Get the length
-print "The length of downloaded file :", len(download_response)
+## print "The length of downloaded file :", len(download_response)
 
 print "write the downloaded file to disk"
 
@@ -73,8 +81,9 @@ output = open(output_file,'wb')
 output.write(download_response)
 output.close()
 
-# now process with Vic's unshuffle code
-unshuff_output = os.system("python UnshuffleFits.py " + output_file + " 1")
-print "Unshuff output: " + str(unshuff_output)
+# now process with Vic's unshuffle code (there are better ways to do this with import
+# and setting the PYTHON search path, still need to locate the otehr tool in use 
+unshuff_output = os.system("python ../UnshuffleFits.py " + output_file + " 1")
+## print "Unshuff output: " + str(unshuff_output)
 
 

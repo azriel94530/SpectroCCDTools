@@ -1,3 +1,4 @@
 #!/bin/bash
-cd /home/user/SpectroCCD/sandbox_azriel
-python ccd_read.py
+# it expects one argument which is the directory where to run the python script
+cd $1
+python ccd_read.py $1
