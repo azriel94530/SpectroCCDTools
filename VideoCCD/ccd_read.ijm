@@ -2,7 +2,7 @@
 run("Memory & Threads...", "maximum=2332 parallel=1 run"); 
 
 // define the defaul directory of ImageJ
-dir = "/home/user/SpectroCCD/SpectroCCDTools/VideoCCD/" 
+dir = "/home/user/SpectroCCD/Tools/VideoCCD/" 
 call("ij.io.OpenDialog.setDefaultDirectory", dir); 
 
 // copy default image to the working file
