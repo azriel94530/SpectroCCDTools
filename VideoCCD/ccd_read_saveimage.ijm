@@ -57,9 +57,9 @@ while (1<2) {
 	file_unsh = "image_unshuff_"+TimeString+".fits";
 	file_orig = "image_orig_"+TimeString+".fits";
 
-	command = "cp " + dir + "image/image_UnShuf.fits" + " " + "/home/user/SpectroCCD/Images/2016-01-22/" + file_unsh;
+	command = "cp " + dir + "image/image_UnShuf.fits" + " " + "/home/user/SpectroCCD/Images/2016-01-27/" + file_unsh;
 	exec(command); 
-	command = "cp " + dir + "image.fits" + " " + "/home/user/SpectroCCD/Images/2016-01-22/" + file_orig;
+	command = "cp " + dir + "image.fits" + " " + "/home/user/SpectroCCD/Images/2016-01-27/" + file_orig;
 	exec(command);
 	// wait 5 minutes so that 1000 images over the weeked total 10 Gig
 	wait(300000);	

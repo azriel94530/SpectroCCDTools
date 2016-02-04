@@ -85,7 +85,7 @@ if(VerboseProcessing):
 # Set the row and column offset since the controler seems to wrap rows and columns (mostly
 # columns) around the images we read out.
 RowOffset = 0
-ColumnOffset = -396
+ColumnOffset = 0
 
 # Convert the image array into the a numpy array...
 imageArray = np.array(thisImage[0].data)
