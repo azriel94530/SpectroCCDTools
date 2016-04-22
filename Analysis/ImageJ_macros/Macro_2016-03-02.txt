@@ -1,0 +1,4 @@
+open("/home/user/SpectroCCD/Images/2016-03-02/Result of Resultofimage_orig_D2016-03-02T17:32:48_backgr_subtr_UnShuf_median_subt_avrgr5_maskMAx.fits");
+setThreshold(1.0,1e20);
+run("Analyze Particles...", "size=1-1 display clear summarize");
+run("Distribution...", "parameter=RawIntDen or=50 and=0-3000");
