@@ -1,5 +1,5 @@
 close("background.fits");
-save_dir = "/home/user/SpectroCCD/Images/2016-04-27/background/";
+save_dir = "/home/user/SpectroCCD/Images/2016-04-29/background/";
 
 // run single threaded to avoid collisions between the shell script and the macro 
 run("Memory & Threads...", "maximum=2332 parallel=1 run"); 

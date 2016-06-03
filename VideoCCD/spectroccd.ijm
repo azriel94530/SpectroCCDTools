@@ -1,13 +1,26 @@
-save_dir = "/home/user/SpectroCCD/Images/2016-04-27/";
+save_dir = "/home/user/SpectroCCD/Images/2016-05-03/";
 // get a background image (no x-rays)
 do_background_subtraction = true;
 do_gains = false;
-do_unshuffle = false;
-rotation_angle = 1.; // the true angle in degrees missaligment between x axis of spectrometer 
+do_unshuffle = true;
+exposure_minutes = 0.; // in continuos mode operation the exposure is controlled by two settings
+	              // the DLY1 field in the controllers CCD timing web page and this
+	              // exposure_minutes variable.
+	              // DLY1 of 14,000 is an exposure of 23 seconds (field can be set from 0-16,383)
+	              // the readout time is about 14 seconds so without a shutter short exposures
+	              // will suffer from the readout band background (due to the angle between the
+	              // columns and the spectrometer horizontal plane.
+	              // the exposure_minutes is an additional exposure time (im minutes units) on top of the 
+	              // DLY1 exposure
+	              // From the experience 
+rotation_angle = -0.65; // the true angle in degrees missaligment between x axis of spectrometer 
 	          // and the columns of the ccd
+show_profile_processed = true;
+show_profile_unshuffled = do_unshuffle && true;
+
 pixel_length = 45.;
 pixel_width = 5.;
-do_fake_image = false;
+do_fake_image = true;
 
 run("Close All");
 setBatchMode(true);
@@ -46,7 +59,7 @@ Gain_BR =  1.;
 height = 1;
 width =1;
 
-num = 10;
+num = 1;
 
 if ( do_unshuffle ) {
 	// create output unshuffled image area and apply relative gains
@@ -59,6 +72,7 @@ for (i = 0; i<num; i++) {
 	
 	if ( do_fake_image ) {
 		// will use whatever image.fits in the directory
+		wait(0);
 	} else {
 		// execute the read ADC script
 		command = dir + "ccd_read_raw.sh" + " " + dir;
@@ -179,7 +193,42 @@ for (i = 0; i<num; i++) {
 
 		print("Gains " + Gain_TL + " " + Gain_TR + " " + Gain_BL + " " + Gain_BR );
 
+		getDateAndTime(year, month, dayOfWeek, dayOfMonth, hour, minute, second, msec);
+		TimeString ="D"+year+"-";
+		if (month<10) {TimeString = TimeString+"0";}
+		TimeString = TimeString+(month+1)+"-";
+   		if (dayOfMonth<10) {TimeString = TimeString+"0";}
+     		TimeString = TimeString+dayOfMonth+"T";
+     		if (hour<10) {TimeString = TimeString+"0";}
+     		TimeString = TimeString+hour+":";
+     		if (minute<10) {TimeString = TimeString+"0";}
+     		TimeString = TimeString+minute+":";
+     		if (second<10) {TimeString = TimeString+"0";}
+     		TimeString = TimeString+second;	
+
+		file_orig = "image_orig_"+TimeString+".fits";
+		
+		command = "cp " + dir + "image.fits" + " " + save_dir + file_orig;
+		exec(command);
+
 	} else {
+		// store the selected region on the processed image for the spectrum/profile
+		selectWindow("image_processed.fits");
+		if ( selectionType() != -1) { 
+			Roi.getBounds(x_rect, y_rect, width_rect, height_rect);
+		} else {
+			makeRectangle(10, 10, 1200, 600);
+			Roi.getBounds(x_rect, y_rect, width_rect, height_rect);
+		}
+		selectWindow("Unshuffled");
+		if ( selectionType() != -1) { 
+			Roi.getBounds(x_rect_unsh, y_rect_unsh, width_rect_unsh, height_rect_unsh);
+		} else {
+			makeRectangle(10, 10, 2400, 590);
+			Roi.getBounds(x_rect_unsh, y_rect_unsh, width_rect_unsh, height_rect_unsh);
+		}
+
+
 		selectWindow("image.fits");
 		run("Revert");
 		getDateAndTime(year, month, dayOfWeek, dayOfMonth, hour, minute, second, msec);
@@ -262,8 +311,7 @@ for (i = 0; i<num; i++) {
 		setMinAndMax(0.0, 1e20);
 		run("Select All");
 		run("Clear", "slice");
-		// create output unshuffled image area and apply relative gains
-		// newImage("Unshuffled", "32-bit black", ccd_width, ccd_height, 1);
+		// create processing imagings for Unshuffling
 		newImage("Unshuffling_top", "32-bit black", ccd_width/2, ccd_height, 1);
 		newImage("Unshuffling_bottom", "32-bit black", ccd_width/2, ccd_height, 1);
 
@@ -330,6 +378,32 @@ for (i = 0; i<num; i++) {
 	}
 
 		setBatchMode("show");
+	
+		// make a profile plot of the image (to ge a spectrum
+	
+		if (i==0) {
+			// a default image area to produce the profile
+			makeRectangle(10, 10, 2400, 590);
+		} else {
+			makeRectangle(x_rect_unsh, y_rect_unsh, width_rect_unsh, height_rect_unsh);
+	
+		}
+	
+		if (i == 0) {
+			run("Profile Plot Options...", "width=2500 height=200 minimum=0 maximum=0 interpolate draw");
+			run("Plot Profile");
+			saveAs("Tiff", dir+"spectrum_unshuffled.tiff");	
+		} else  {
+			run("Plot Profile");
+			saveAs("Tiff", dir+"spectrum_unshuffled.tiff");
+			// move aside to go back to our original profile and update it
+			rename("junk");
+			selectWindow("spectrum_unshuffled.tiff");
+			run("Revert");
+		}
+		if ( show_profile_unshuffled) {
+			setBatchMode("show");
+		}
 		close("Unshuffling_top");
 		close("Unshuffling_bottom");
 
@@ -337,6 +411,7 @@ for (i = 0; i<num; i++) {
 
 	// rotation
 	selectWindow("image_processed.fits");
+
 	if (rotation_angle != 0.) {
 		run("Select All");
 		// the factor of 2 inthe width is because this image is still every second column
@@ -345,8 +420,17 @@ for (i = 0; i<num; i++) {
 	// make the processed image visible
 	setBatchMode("show");
 	
-	// make a profile plot of the image (to ge a spectrum)
-	makeRectangle(10, 10, 1200, 600);
+	// make a profile plot of the image (to ge a spectrum
+	
+	if (i==0) {
+		// a default image area to produce the profile
+		makeRectangle(10, 10, 1200, 600);
+	} else {
+		makeRectangle(x_rect, y_rect, width_rect, height_rect);
+		print("rectangle",x_rect, y_rect, width_rect, height_rect);
+	
+	}
+	
 	if (i == 0) {
 		run("Profile Plot Options...", "width=1500 height=200 minimum=0 maximum=0 interpolate draw");
 		run("Plot Profile");
@@ -359,7 +443,10 @@ for (i = 0; i<num; i++) {
 		selectWindow("spectrum.tiff");
 		run("Revert");
 	}
-	setBatchMode("show");
+	if ( show_profile_processed) {
+		setBatchMode("show");
+	}
+	wait(exposure_minutes*60*1000);
 }
 
 
