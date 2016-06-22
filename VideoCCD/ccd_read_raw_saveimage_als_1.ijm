@@ -39,8 +39,7 @@ open("image.fits");
 
 makeRectangle(512,492,426,456);
 run("Enhance Contrast","saturated=0.35");
-num = 1000;
-skip_save = 20
+num = 10000000000000000000;
 
 while (num>0) {
 	// execute the read ADC script
@@ -49,7 +48,6 @@ while (num>0) {
 	exec(command);
 	// this does the trick, reopen the image, which has in the meantime been overwritten
 	// but it does so in the same window and with the same zoom, etc 
-	selectWindow("image.fits");
 	run("Revert");
 	run("Enhance Contrast","saturated=0.35");
 //	getStatistics(area, mean, min, max, std);
@@ -69,10 +67,10 @@ while (num>0) {
      	TimeString = TimeString+second;
 
 	file_orig = "image_orig_"+TimeString+".fits";
-	if ( ( num % skip_save ) == 0 ) {
-		command = "cp " + dir + "image.fits" + " " + "/home/user/SpectroCCD/Images/2016-06-10/" + file_orig;
-		exec(command);
-	}
-	wait(0*60*1000);
+
+	command = "cp " + dir + "image.fits" + " " + "/home/user/SpectroCCD/Images/2016-02-19_als_m70_bckg/" + file_orig;
+	exec(command);
+
+	wait(0*1000);
 	num--;	
 }

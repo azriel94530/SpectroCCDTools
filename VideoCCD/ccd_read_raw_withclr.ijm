@@ -1,5 +1,6 @@
 // run single threaded to avoid collisions between the shell script and the macro 
 run("Memory & Threads...", "maximum=2332 parallel=1 run"); 
+exposure_time_minutes = 0;
 
 // define the defaul directory of ImageJ
 dir = "/home/user/SpectroCCD/Tools/VideoCCD/" 
@@ -30,7 +31,7 @@ call("ij.io.OpenDialog.setDefaultDirectory", dir);
 // open new imagein the same window
 // run("Size...", "width=2496 height=22464 interpolation=None");
 
-command = dir + "ccd_read_raw.sh" + " " + dir;
+command = dir + "ccd_read_raw_withclr.sh" + " " + dir + " " + exposure_time_minutes;
 print(command);
 exec(command);
 
@@ -39,40 +40,20 @@ open("image.fits");
 
 makeRectangle(512,492,426,456);
 run("Enhance Contrast","saturated=0.35");
-num = 1000;
-skip_save = 20
 
-while (num>0) {
+while (1<2) {
 	// execute the read ADC script
 	command = dir + "ccd_read_raw.sh" + " " + dir;
 	print(command);
 	exec(command);
 	// this does the trick, reopen the image, which has in the meantime been overwritten
-	// but it does so in the same window and with the same zoom, etc 
+	// but it does so in the same window and with the same zoom, etc
+ 
 	selectWindow("image.fits");
 	run("Revert");
 	run("Enhance Contrast","saturated=0.35");
 //	getStatistics(area, mean, min, max, std);
 //	setMinAndMax(mean-2*std, max);
-// save files original and unshuffled
-	getDateAndTime(year, month, dayOfWeek, dayOfMonth, hour, minute, second, msec);
-	TimeString ="D"+year+"-";
-	if (month<10) {TimeString = TimeString+"0";}
-	TimeString = TimeString+(month+1)+"-";
-     	if (dayOfMonth<10) {TimeString = TimeString+"0";}
-     	TimeString = TimeString+dayOfMonth+"T";
-     	if (hour<10) {TimeString = TimeString+"0";}
-     	TimeString = TimeString+hour+":";
-     	if (minute<10) {TimeString = TimeString+"0";}
-     	TimeString = TimeString+minute+":";
-     	if (second<10) {TimeString = TimeString+"0";}
-     	TimeString = TimeString+second;
 
-	file_orig = "image_orig_"+TimeString+".fits";
-	if ( ( num % skip_save ) == 0 ) {
-		command = "cp " + dir + "image.fits" + " " + "/home/user/SpectroCCD/Images/2016-06-10/" + file_orig;
-		exec(command);
-	}
-	wait(0*60*1000);
-	num--;	
+	wait(0*1000);	
 }
