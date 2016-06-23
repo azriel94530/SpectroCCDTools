@@ -1,0 +1,9 @@
+<!--QQstartQQ		
+
+address	data	
+
+Idle
+x0	 | 66c06002	shutter with DLY1 delay for long exposure start
+x1	 | 0000000f	return to idle state
+
+<!--QQendQQ-->		

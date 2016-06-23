@@ -31,7 +31,7 @@ run("Close All");
 setBatchMode(true);
 
 // assumed that background image is the same as the flat_light image
-background_image = "background.fits";
+background_image = "background_slow.fits";
 ccd_width =  2496;
 ccd_height = 620;
 
@@ -94,10 +94,21 @@ for (i = 0; i<num; i++) {
 		print(command);
 		exec(command);
 
-		// wait while exposing Give message
-		wait(60*exposure_minutes);
+		// HERE open the shutter executing a idle mode toggle
+		command = dir + "ccd_idle.sh" + " " + dir;
+		print(command);
+		exec(command);
 
-		// read image
+		// HERE open the shutter executing a idle mode toggle
+		command = dir + "ccd_idle.sh" + " " + dir;
+		print(command);
+		exec(command);
+
+
+		// wait while exposing Give message
+		wait(60*1000*exposure_minutes);
+
+		// read image this read will not open the shutter just close it at the end
 		command = dir + "ccd_read_raw_new.sh" + " " + dir;
 		print(command);
 		exec(command);

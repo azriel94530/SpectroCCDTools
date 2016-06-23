@@ -26,7 +26,7 @@ run("Close All");
 setBatchMode(true);
 
 // assumed that background image is the same as the flat_light image
-background_image = "background.fits";
+background_image = "background_fast.fits";
 ccd_width =  2496;
 ccd_height = 620;
 

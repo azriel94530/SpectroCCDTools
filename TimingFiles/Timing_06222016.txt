@@ -1,0 +1,98 @@
+<!--QQstartQQ		
+
+address	data	
+
+Idle
+x0	 | 66c06002	shutter Open with DLY2 delay and verticals and TGs in normal
+x1	 | 0000000f	return to idle state
+
+Read
+x32	 | 9900f001	serial clock initial conditions reset active
+x33	 | 9900f001	serial clock initial conditions reset active
+x34	 | 9900f001	serial clock initial conditions reset active
+x35	 | 9900f001	serial clock initial conditions reset active
+x36	 | 9900f001	serial clock initial conditions reset active
+x37	 | 9900f001	serial clock initial conditions reset active
+x38	 | 66e00002	shutter close
+x39	 | 44e05002	V3 low
+x40	 | 00100284	Test jump 84 Azriel Times 6
+x41	 | cce05002	V1 high
+x42	 | 00100284	Test jump 84 Azriel Times 6
+x43	 | 88205002	V2 low TG low Reg 5 is Parallel Clock Time
+x44	 | 00100284	Test jump 84 Azriel Times 6
+x45	 | aa205002	V3 high
+x46	 | 00100284	Test jump 84 Azriel Times 6
+x47	 | 22205002	V1 low
+x48	 | 00100284	Test jump 84 Azriel Times 6
+x49	 | 66e05002	V2 high, TG high
+x50	 | 00100284	Test jump 84 Azriel Times 6
+x51	 | bb002001	h1 low
+x52	 | 33002001	h3 high
+x53	 | 77004001	reset active Reg 4 is RESET Time
+x54	 | 55002001	h1 high Reg 2 is Serial Clock Time
+x55	 | dd002001	h3 low
+x56	 | 99002001	h2 high
+x57	 | bb002001	h1 low
+x58	 | 33002001	h3 high
+x59	 | 77002001	h2 low 
+x60	 | 66001001	reset off Reg 1 is RESET settling Time
+x61	 | 66011801	sample RESET level for DELAY 1
+x62	 | 66c03001	summing well high Reg 3 is SW Time
+x63	 | 66000001	summing well low Reg 0 is SW settling Time
+x64	 | 66020801	sample SIGNAL level for DELAY 0
+x65	 | 6600f001	turn off sampling
+x66	 | 00350008	loop to 53 for num col
+x67	 | 44002001	h1 high Reg 2 is Serial Clock Time
+x68	 | cc002001	h3 low
+x69	 | 99002001	default horizontal clocks, reset high
+x70	 | 00271008	loop to 39 for num row
+x71	 | 0000000f	return to idle state
+
+clear
+x96	 | 6600f001	serial clock initial conditions
+x97	 | 66c0f002	parallel clock initial conditions
+x98	 | 77004001	reset active
+x99	 | 55002001	turn reset serial delay
+x100	 | dd002001	h3 low
+x101	 | 99002001	h2 high
+x102	 | bb002001	h1 low
+x103	 | 33002001	h3 high
+x104	 | 77002001	h2 low
+x105	 | 66002001	h1 high
+x106	 | 66c03001	summing well high
+x107	 | 66003001	summing well low
+x108	 | 00622008	loop to 98 for num clear col
+x109	 | 44c05002	V1 low
+x110	 | ccc05002	V3 high
+x111	 | 88005002	V2 low
+x112	 | aa005002	V1,TG high
+x113	 | 22005002	V3 low
+x114	 | 66c05002	V2 high TG low
+x115	 | 00621008	loop to 98 for num rows
+x116	 | 0000000f	return to idle state
+	
+
+noise
+x128	 | bb004001	reset active
+x129	 | aa00f001	turn reset off no delay
+x130	 | 88002001	h3 low
+x131	 | cc002001	h2 high
+x132	 | 44002001	h1 low
+x133	 | 66002001	h3 high
+x134	 | 22002001	h2 low
+x135	 | aa001001	h1 high wait reset settling
+x136	 | aa011801	sample reset
+x137	 | aac03001	summing well high
+x138	 | aa000001	summing well low signal settling
+x139	 | aa020801	sample signal
+x140	 | aa00f001	turn off sampling
+x141	 | 00800008	loop to 128 for num col
+x142	 | cc005002	V2 high TG low
+x143	 | 44005002	V1 low
+x144	 | 66005002	V3 high
+x145	 | 22005002	V2 low
+x146	 | aac05002	V1,TG high
+x147	 | 88c05002	V3 low
+x148	 | 0000000f	return to idle state
+
+<!--QQendQQ-->		
