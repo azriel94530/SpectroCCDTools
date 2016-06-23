@@ -22,6 +22,8 @@ pixel_length = 45.;
 pixel_width = 5.;
 do_fake_image = false;
 
+binning = 1;
+
 run("Close All");
 setBatchMode(true);
 
@@ -72,8 +74,15 @@ if ( do_unshuffle ) {
 }
 
 if ( !do_fake_image ) {
-	// setup the ccd readout for fast mode
-	command = dir + "ccd_setup_fast_mode.sh" + " " + dir;
+
+	// shutter open
+	// upload timing file that has a open shutter for idle
+	command = dir + "ccd_upload_timing_file.sh" + " " + dir;
+	print(command);
+	exec(command);
+
+	// setup the ccd readout for fast mode and set idle on to get shutter open
+	command = dir + "ccd_setup_fast_mode.sh" + " " + dir + " " + binning;
 	print(command);
 	exec(command);
 
@@ -89,7 +98,8 @@ for (i = 0; i<num; i++) {
 
 		// can choose to discard here a full sequence
 
-		// execute the read ADC script
+		// execute the read ADC script shutter will close at the end of exposure and reopen at
+		// end of read cycle effectively starting the exposure for the next image in the loop
 		command = dir + "ccd_read_raw_new.sh" + " " + dir;
 		print(command);
 		exec(command);

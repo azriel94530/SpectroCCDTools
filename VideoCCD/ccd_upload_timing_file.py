@@ -23,30 +23,15 @@ import sys
 
 
 controller_ip = "http://192.168.1.10/"
+timing_file  = "Timing_binning.txt"
 
-files = {'BRAM_File': open('../TimingFiles/Timing_06222016.txt')}
+print "Uploading timing file that idles with shutter open"
 
-# f = open('../TimingFiles/Timing_06222016.txt','r')
+f = open('../TimingFiles/'+timing_file,'r')
+timing_file_content=f.read()
+content_length = str(len(timing_file_content))+"\r"
 
-#headers = {'Content-Type': 'text/plain'}
+message = '-----Content-Length: ' + content_length + 'filename="' +timing_file+'" Content-Type: text/plain'+'....'+timing_file_content+'-----'
 
-r = requests.post(controller_ip+"cmd/FILExhrBRAM", files=files)
-
-#r = requests.post(controller_ip+"cmd/FILExhrBRAM", files=files, headers=headers)
-#r = requests.post(controller_ip+"timing.txt", files=files, headers=headers)
-
-#r = requests.post(controller_ip+"timing.txt", files=files, headers=headers)
-
-# f = open('../TimingFiles/Timing_06222016.txt','r')
-
-
-# print datagen
-
-# print headers
-
-# print params
-
-# print "Uploading timing file"
-# params=f.read()
-# response = urllib2.urlopen(controller_ip + "timing.txt", params)
+response = urllib2.urlopen(controller_ip + "cmd/FILExhrBRAM", message)
 

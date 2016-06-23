@@ -1,4 +1,5 @@
 # python script to setup default settings of the slow data taking mode of the SpectroCCD controller 
+# make sure idle mode is ON, to ensure the desired state of the shutter
 # (soft ARM version)
 # Azriel Goldschmidt Jun-16-2016
 
@@ -104,6 +105,22 @@ On_Off
 # print "Setting switches (Verticals should be enabled)"
 response = urllib2.urlopen(controller_ip + "cmd/enable", params)
 
+# set Idle mode and make sure it is idling
+response = urllib2.urlopen(controller_ip + "cmd/idle", params)
+html = response.read()
+if "Idlemode" in html:
+	if "Off" in html:
+		response = urllib2.urlopen(controller_ip + "cmd/idle", params)
+		html = response.read()
+		if "Idlemode" in html and not "Off" in html:
+			print "Success settting Idle mode in second toggle"
+		else:
+			print "Failed to set Idlemode on"
+	else:
+		print "Succeeded setting Idle mode on first time"
+		
+else:
+	print "Problem setting Idle mode"
 
 
 

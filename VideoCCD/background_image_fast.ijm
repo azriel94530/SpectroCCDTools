@@ -1,3 +1,5 @@
+binning = 1;
+
 close("background_fast.fits");
 save_dir = "/home/user/SpectroCCD/Images/2016-06-17/background/";
 
@@ -8,10 +10,13 @@ run("Memory & Threads...", "maximum=2332 parallel=1 run");
 dir = "/home/user/SpectroCCD/Tools/VideoCCD/" 
 call("ij.io.OpenDialog.setDefaultDirectory", dir); 
 
+		// upload timing file that has a close shutter for idle
+		command = dir + "ccd_upload_timing_file_close.sh" + " " + dir;
+		print(command);
+		exec(command);
 
-
-		// execute set fast mode
-		command = dir + "ccd_setup_fast_mode.sh" + " " + dir;
+		// execute set fast mode and sets Idle mode to ensure shutter is closed
+		command = dir + "ccd_setup_fast_mode.sh" + " " + dir + " " + binning;
 		print(command);
 		exec(command);
 		
@@ -54,8 +59,9 @@ exec(command);
 print("Move image to standard name");
 // rename the working image file to standard name for background subtraction
 command = "mv " + dir + "image.fits" + " " + dir + "background_fast.fits";
+print(command);
 exec(command);
-print("Process image for display");
+print("Process image for display Only");
 // flip horizontal quadrants
 // selectWindow(xray_image);
 ccd_width =  2496;

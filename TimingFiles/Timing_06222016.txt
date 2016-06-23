@@ -3,7 +3,7 @@
 address	data	
 
 Idle
-x0	 | 66c06002	shutter Open with DLY2 delay and verticals and TGs in normal
+x0	 | 66c06002	shutter Open with DLY1 delay and verticals and TGs in normal
 x1	 | 0000000f	return to idle state
 
 Read

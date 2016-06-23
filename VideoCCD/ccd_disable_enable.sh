@@ -1,6 +1,8 @@
 #!/bin/bash
 # it expects one argument which is the directory where to run the python script
-cd $1
+# fixed location for now
+cd ~/SpectroCCD/Tools/VideoCCD
+
 # first set the clock voltages so that all Vs and TGs are ZERO
 python ccd_set_clock_voltages_before_enable.py
 sleep 20

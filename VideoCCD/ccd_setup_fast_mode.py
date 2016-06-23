@@ -1,4 +1,5 @@
 # python script to setup default settings of the fast data taking mode of the SpectroCCD controller 
+# make sure idle mode is ON, to ensure the desired state of the shutter
 # (soft ARM version)
 # Azriel Goldschmidt Jun-16-2016
 
@@ -20,12 +21,15 @@ import sys
 # 
 # DirectoryPath = sys.argv[1]
 
+binning = int(sys.argv[2])
+
 controller_ip = "http://192.168.1.10/"
 
 # prepare the message for setting the timing configuration values
 
-samples_signal = "&dlya=64"
-samples_reset = "&dlyb=64"
+samples_signal = "&dlya=512"
+samples_reset = "&dlyb=512"
+
 settling_delay_signal = "&dlyc=10"
 settling_delay_reset = "&dlyd=10"
 serial_delay = "&dlye=10"
@@ -37,9 +41,18 @@ delay_2 = "&dlyj=7"
 delay_3 = "&dlyk=7"
 delay_4 = "&dlyl=7"
 pixels_x = "&pixelX=1448"
-pixels_y = "&pixelY=1440"
-clear_columns ="&clrcol=1000"
-averaging_bits = "&averaging=6"
+
+pixels_y = "&pixelY="+str(int(1440/binning))
+print pixels_y
+
+# clear column field now is used to pass the binning
+# the least significat bit is removed by the controller
+# so a value of 20 is binning of 10 pixles into one vertically
+binning_clrcol_field = str(binning*2)
+clear_columns ="&clrcol="+binning_clrcol_field
+
+averaging_bits = "&averaging=9"
+
 digital_offset = "&digoff=1000"
 exposure_time = "&exptim=5000"
 config_ok = "&config=OK"
@@ -104,6 +117,23 @@ On_Off
 
 # print "Setting switches (Verticals should be enabled)"
 response = urllib2.urlopen(controller_ip + "cmd/enable", params)
+
+# set Idle mode and make sure it is idling
+response = urllib2.urlopen(controller_ip + "cmd/idle", params)
+html = response.read()
+if "Idlemode" in html:
+	if "Off" in html:
+		response = urllib2.urlopen(controller_ip + "cmd/idle", params)
+		html = response.read()
+		if "Idlemode" in html and not "Off" in html:
+			print "Success settting Idle mode in second toggle"
+		else:
+			print "Failed to set Idlemode on"
+	else:
+		print "Succeeded setting Idle mode on first time"
+		
+else:
+	print "Problem setting Idle mode"
 
 
 

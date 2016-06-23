@@ -79,31 +79,33 @@ for (i = 0; i<num; i++) {
 		// will use whatever image.fits in the directory
 		wait(0);
 	} else {
-		// execute set fast mode
+
+		// shutter close
+		// upload timing file that has a close shutter for idle
+		command = dir + "ccd_upload_timing_file_close.sh" + " " + dir;
+		print(command);
+		exec(command);
+
+		// execute set fast mode and set idle mode to get the shutter closed
 		command = dir + "ccd_setup_fast_mode.sh" + " " + dir;
 		print(command);
 		exec(command);
 		
-		// execute read image 
+		// execute read image (a  porr mans clear)
 		command = dir + "ccd_read_raw_new.sh" + " " + dir;
 		print(command);
 		exec(command);
 
-		// execute set slow mode
+		// shutter open
+		// upload timing file that has a open shutter for idle
+		command = dir + "ccd_upload_timing_file.sh" + " " + dir;
+		print(command);
+		exec(command);
+
+		// execute set slow mode and gets the idle on thus shutter open
 		command = dir + "ccd_setup_slow_mode.sh" + " " + dir;
 		print(command);
 		exec(command);
-
-		// HERE open the shutter executing a idle mode toggle
-		command = dir + "ccd_idle.sh" + " " + dir;
-		print(command);
-		exec(command);
-
-		// HERE open the shutter executing a idle mode toggle
-		command = dir + "ccd_idle.sh" + " " + dir;
-		print(command);
-		exec(command);
-
 
 		// wait while exposing Give message
 		wait(60*1000*exposure_minutes);

@@ -114,6 +114,71 @@ def set_image_size(nx,ny):
         if (r_status != 0): print msg_str
         return r_status
 
+def set_artificial_data(artificial):
+	""" Set the flag for artificial data, artificial=0 is real image data, non-zero is artificial """
+
+        cmd = LBNL_ARTIF_DATA
+        d00 = artificial
+        tuple_to_send = (cmd ,nw, string_message, d00, d01, d02, d03, d04, d05, d06, d07, d08, d09, d10, d11)
+        string_to_send = struct.pack(format_, *tuple_to_send)
+        sock.mysend(string_to_send)
+ 
+        # receive the reply from controller
+        recv_message = sock.myreceive()
+        msg_str,dr00,dr01,dr02,dr03,dr04,dr05,dr06,dr07,dr08,dr09,dr10,dr11,r_status  =  struct.unpack(format_from_controller_,recv_message)
+        if (r_status != 0): print msg_str
+        return r_status
+
+def get_image_size():
+	""" Get the ccd image size, with nx pixels in x and ny pixels in y """
+	
+	cmd = LBNL_GET_IMSIZE
+        tuple_to_send = (cmd ,nw, string_message, d00, d01, d02, d03, d04, d05, d06, d07, d08, d09, d10, d11)
+        string_to_send = struct.pack(format_, *tuple_to_send)
+        sock.mysend(string_to_send)
+ 
+        # receive the reply from controller
+        recv_message = sock.myreceive()
+        msg_str,dr00,dr01,dr02,dr03,dr04,dr05,dr06,dr07,dr08,dr09,dr10,dr11,r_status  =  struct.unpack(format_from_controller_,recv_message)
+	nx = -1
+	ny = -1
+        if (r_status != 0): 
+		print msg_str
+	else:
+		nx = dr00
+		ny = dr01
+		print nx,ny
+
+        return r_status, nx, ny
+
+def read_register(reg_add0, reg_add1):
+	""" Read a register value. Input is ... Output is a 32bit unsigned """
+	
+        cmd = LBNL_GET_REG
+        d00 = reg_add0
+	d01 = reg_add1
+
+        tuple_to_send = (cmd ,nw, string_message, d00, d01, d02, d03, d04, d05, d06, d07, d08, d09, d10, d11)
+        string_to_send = struct.pack(format_, *tuple_to_send)
+        sock.mysend(string_to_send)
+ 
+        # receive the reply from controller
+        recv_message = sock.myreceive()
+        msg_str,dr00,dr01,dr02,dr03,dr04,dr05,dr06,dr07,dr08,dr09,dr10,dr11,r_status  =  struct.unpack(format_from_controller_,recv_message)
+	reg_value = -9999
+        if (r_status != 0): 
+		print msg_str
+	else:
+		reg_value = dr00
+		print "Register: "+str(reg_add0)+" "+str(reg_add1)+" is: "+str(reg_value)
+
+        return r_status, reg_value
+
+	
+	
+
+
+
 
 
 

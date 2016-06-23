@@ -46,3 +46,9 @@ LBNL_GET_CPARS=         43
 LBNL_GET_EPARS=         44
 LBNL_GET_PPARS=         45
 
+# from lbnl_mem.h
+STATUS_OFFSET= (31*4) 
+TYPE_CCDSTATE=   0
+TYPE_GPIO=       1
+TYPE_VIDEOMEM=   2
+TYPE_WAVEMEM=    3

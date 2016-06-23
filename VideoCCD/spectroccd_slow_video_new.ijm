@@ -13,7 +13,7 @@ exposure_minutes = 0.; // in continuos mode operation the exposure is controlled
 	              // the exposure_minutes is an additional exposure time (im minutes units) on top of the 
 	              // DLY1 exposure
 	              // From the experience 
-rotation_angle = -0.65; // the true angle in degrees missaligment between x axis of spectrometer 
+rotation_angle = 0.; // the true angle in degrees missaligment between x axis of spectrometer 
 	          // and the columns of the ccd
 show_profile_processed = true;
 show_profile_unshuffled = do_unshuffle && true;
@@ -67,7 +67,14 @@ if ( do_unshuffle ) {
 }
 
 if ( !do_fake_image ) {
-	// setup the ccd readout for fast mode
+
+	// shutter open
+	// upload timing file that has a open shutter for idle
+	command = dir + "ccd_upload_timing_file.sh" + " " + dir;
+	print(command);
+	exec(command);
+
+	// setup the ccd readout for fast mode and set idle mode to get shutter open
 	command = dir + "ccd_setup_slow_mode.sh" + " " + dir;
 	print(command);
 	exec(command);
@@ -82,7 +89,8 @@ for (i = 0; i<num; i++) {
 	} else {
 		// can choose to discard here a full sequence
 
-		// execute the read ADC script
+		// execute the read ADC script will readout image close shutter while doing the read and
+		// then set the shutter back open starting the next exposure
 		command = dir + "ccd_read_raw_new.sh" + " " + dir;
 		print(command);
 		exec(command);

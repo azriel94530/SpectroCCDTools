@@ -9,14 +9,13 @@ dir = "/home/user/SpectroCCD/Tools/VideoCCD/"
 call("ij.io.OpenDialog.setDefaultDirectory", dir); 
 
 
-
-		// execute set fast mode
-		command = dir + "ccd_setup_slow_mode.sh" + " " + dir;
+		// upload timing file that has a close shutter for idle
+		command = dir + "ccd_upload_timing_file_close.sh" + " " + dir;
 		print(command);
 		exec(command);
 
-		// close shutter by executing a ccd_clear in new timing file that closes the shutter
-		command = dir + "ccd_clear_closes_shutter.sh" + " " + dir;
+		// execute set slow mode alsosets idle mode on thus shutter closed
+		command = dir + "ccd_setup_slow_mode.sh" + " " + dir;
 		print(command);
 		exec(command);
 		
