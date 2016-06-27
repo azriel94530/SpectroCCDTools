@@ -39,7 +39,10 @@ delay_3 = "&dlyk=7"
 delay_4 = "&dlyl=7"
 pixels_x = "&pixelX=1448"
 pixels_y = "&pixelY=1440"
-clear_columns ="&clrcol=1000"
+
+# this forces a binnoing of 1
+clear_columns ="&clrcol=2"
+
 averaging_bits = "&averaging=10"
 digital_offset = "&digoff=5000"
 exposure_time = "&exptim=5000"

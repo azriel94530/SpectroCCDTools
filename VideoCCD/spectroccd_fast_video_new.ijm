@@ -63,10 +63,13 @@ Gain_BL =  1.;
 Gain_BR =  1.;
 
 height = 1;
-width =1;
+width = 1;
 
 // this is to LIMIT the number of reads, about 5 minutes
-num = 150;
+num = 100;
+
+// save the image to disk every n images taken
+save_every_n = 50;
 
 if ( do_unshuffle ) {
 	// create output unshuffled image area and apply relative gains
@@ -271,9 +274,12 @@ for (i = 0; i<num; i++) {
      		TimeString = TimeString+second;	
 
 		file_orig = "image_orig_"+TimeString+".fits";
-		
-		command = "cp " + dir + "image.fits" + " " + save_dir + file_orig;
-		exec(command);	
+
+		if ( i%save_every_n == 0 ) {
+
+			command = "cp " + dir + "image.fits" + " " + save_dir + file_orig;
+			exec(command);	
+		}
 
 	}
 	// assemble the processed image 

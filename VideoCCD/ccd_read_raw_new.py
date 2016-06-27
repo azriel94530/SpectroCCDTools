@@ -46,7 +46,7 @@ response = urllib2.urlopen(controller_ip + "cmd/adcxhr", params)
 
 # Get all data
 html = response.read()
-print "Get all data: ", html
+# print "Get all data: ", html
 
 # Get only the length
 ## print "Get the length :", len(html)

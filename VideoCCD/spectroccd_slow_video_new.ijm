@@ -82,6 +82,7 @@ if ( !do_fake_image ) {
 
 
 for (i = 0; i<num; i++) {
+	print("Image number: "+i);
 	
 	if ( do_fake_image ) {
 		// will use whatever image.fits in the directory
@@ -207,7 +208,7 @@ for (i = 0; i<num; i++) {
 			close();
  		} // end of if do_gains
 
-		print("Gains " + Gain_TL + " " + Gain_TR + " " + Gain_BL + " " + Gain_BR );
+		// print("Gains " + Gain_TL + " " + Gain_TR + " " + Gain_BL + " " + Gain_BR );
 
 		getDateAndTime(year, month, dayOfWeek, dayOfMonth, hour, minute, second, msec);
 		TimeString ="D"+year+"-";
@@ -443,7 +444,7 @@ for (i = 0; i<num; i++) {
 		makeRectangle(10, 10, 1200, 600);
 	} else {
 		makeRectangle(x_rect, y_rect, width_rect, height_rect);
-		print("rectangle",x_rect, y_rect, width_rect, height_rect);
+		// print("rectangle",x_rect, y_rect, width_rect, height_rect);
 	
 	}
 	

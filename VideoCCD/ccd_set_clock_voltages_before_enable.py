@@ -80,7 +80,7 @@ FS1_L+FS2_L+FS3_L+FS4_L+V1_L+V2_L+V3_L+V4_L+TG1_L+TG2_L+\
 FS1_H+FS2_H+FS3_H+FS4_H+V1_H+V2_H+V3_H+V4_H+TG1_H+TG2_H+\
 VSUB+ERASE_VCK+ERASE_VSB+ERASE_SLW+ERASE_TIM+EPURG_VCK+EPURG_TIM
 
-print "Parameters:", params
+# print "Parameters:", params
 
 # print "Set the timing configuration values"
 response = urllib2.urlopen(controller_ip + "cmd/clkdac", params)

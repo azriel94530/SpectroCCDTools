@@ -27,9 +27,8 @@ controller_ip = "http://192.168.1.10/"
 
 # prepare the message for setting the timing configuration values
 
-samples_signal = "&dlya=512"
-samples_reset = "&dlyb=512"
-
+samples_signal = "&dlya=64"
+samples_reset = "&dlyb=64"
 settling_delay_signal = "&dlyc=10"
 settling_delay_reset = "&dlyd=10"
 serial_delay = "&dlye=10"
@@ -51,8 +50,7 @@ print pixels_y
 binning_clrcol_field = str(binning*2)
 clear_columns ="&clrcol="+binning_clrcol_field
 
-averaging_bits = "&averaging=9"
-
+averaging_bits = "&averaging=6"
 digital_offset = "&digoff=1000"
 exposure_time = "&exptim=5000"
 config_ok = "&config=OK"

@@ -30,6 +30,16 @@ call("ij.io.OpenDialog.setDefaultDirectory", dir);
 		print(command);
 		exec(command);
 
+		// upload timing file that has an Open shutter for idle
+		command = dir + "ccd_upload_timing_file.sh" + " " + dir;
+		print(command);
+		exec(command);
+
+		// execute set fast mode and sets Idle mode to ensure shutter is open
+		command = dir + "ccd_setup_fast_mode.sh" + " " + dir + " " + binning;
+		print(command);
+		exec(command);
+
 
 open("image.fits"); 
 rename("background_fast.fits");
